@@ -51,6 +51,7 @@ export default function Map({ hazards = [], bounds = HK_BOUNDS }) {
   const containerRef = useRef(null);
   const mapRef = useRef(null);
   const markersRef = useRef([]);
+  const userMarkerRef = useRef(null);
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
@@ -60,7 +61,7 @@ export default function Map({ hazards = [], bounds = HK_BOUNDS }) {
       bounds: bounds,
       fitBoundsOptions: { padding: 60 },
     });
-    map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), "top-right");
+    map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), "bottom-right");
     map.on("load", () => setLoaded(true));
     mapRef.current = map;
     return () => map.remove();
@@ -106,6 +107,29 @@ export default function Map({ hazards = [], bounds = HK_BOUNDS }) {
     if (!map || !loaded) return;
     map.fitBounds(bounds, { padding: 60, duration: 900 });
   }, [bounds, loaded]);
+
+  // Show the viewer's current location as the usual blue dot (no camera move).
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !loaded || !navigator.geolocation) return;
+    const id = navigator.geolocation.watchPosition(
+      (pos) => {
+        const lngLat = [pos.coords.longitude, pos.coords.latitude];
+        if (!userMarkerRef.current) {
+          const el = document.createElement("div");
+          el.style.cssText =
+            "width:16px;height:16px;border-radius:50%;background:#2a7fff;" +
+            "border:3px solid #fff;box-shadow:0 0 0 6px rgba(42,127,255,0.20),0 1px 6px rgba(0,0,0,0.45);";
+          userMarkerRef.current = new mapboxgl.Marker({ element: el }).setLngLat(lngLat).addTo(map);
+        } else {
+          userMarkerRef.current.setLngLat(lngLat);
+        }
+      },
+      () => {},
+      { enableHighAccuracy: true, maximumAge: 5000, timeout: 10000 }
+    );
+    return () => navigator.geolocation.clearWatch(id);
+  }, [loaded]);
 
   return <div ref={containerRef} style={{ position: "absolute", inset: 0 }} />;
 }
