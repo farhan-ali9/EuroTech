@@ -198,22 +198,22 @@ docker compose exec db psql -U bumpless -d bumpless -c "TRUNCATE defects;"
 
 ## Bump detection
 
-**Demo (current code).** Severity comes from one value — the **up/down jolt along the
-phone's screen-normal (z) axis** (gravity removed):
+**Demo (current code).** Severity comes from the **vertical jolt — the motion
+acceleration projected onto gravity ("down")** — which is orientation-independent
+(works whether the phone is flat, upright, or tilted, and ignores horizontal forces
+like braking/cornering):
 
 ```
-|z| = |acceleration.z|     # from DeviceMotionEvent.acceleration; vertical when the phone lies flat
+gravity = accelerationIncludingGravity − acceleration     # both from DeviceMotionEvent
+down    = | acceleration · gravity / |gravity| |          # m/s²
 ```
 
-A bump fires when `|z|` exceeds a threshold (with a short debounce so one pothole = one
-event), and `|z|` is bucketed into severity 1–5. There is **no speed gate**, and it
-assumes the phone is lying flat (no full-orientation handling), so you can test it by
-tapping the phone's face. Deliberately simple — see `frontend/src/services/detector.js`.
+A bump fires when `down` exceeds a threshold (with a short debounce so one pothole =
+one event), and it's bucketed into severity 1–5. There's still **no speed gate** or
+corroboration. Deliberately simple — see `frontend/src/services/detector.js`.
 
-**How it should work (production).** Raw magnitude alone isn't enough:
+**How it should work (production).** Beyond the current demo:
 - **Speed gate** — ignore readings under ~8 km/h (phone handling while parked/walking).
-- **Isolate the vertical axis** — use the gyroscope/orientation to project onto the
-  road-normal axis so braking & cornering aren't mistaken for defects.
 - **Windowed peak** — a pothole is a sub-100 ms spike; sample ~100 Hz and take the peak.
 - **Per-vehicle / per-mount calibration** — so a "4" means the same in every car.
 - **Corroboration** — only treat a spot as a real defect after several independent vehicles report it.
@@ -234,7 +234,7 @@ one-VPS deployment with auto-TLS.
 **Next steps to make it practical**
 1. **Auto-resolve by silence** — a defect decays off the map once vehicles stop
    reporting bumps there (inferred from absence of reports, not a manual button).
-2. **Severity calibration & per-vehicle normalization** — tune against real potholes
-   and isolate the vertical axis so braking/cornering don't register.
+2. **Severity calibration & per-vehicle normalization** — tune thresholds against real
+   potholes and normalize for suspension/phone-mount differences.
 3. **Multi-vehicle corroboration** before a defect is surfaced (filters one-off noise).
 4. **Hands-free alerts** — spoken/audio warnings and background operation.

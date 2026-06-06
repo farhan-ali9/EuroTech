@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { Mark } from "../components/Logo";
 import { startGPS, startCompass } from "../services/sensors";
 import { createAccelSource } from "../services/accelSource";
-import { createDetector } from "../services/detector";
+import { createDetector, downwardStrength } from "../services/detector";
 import { sendReport, fetchNearby } from "../services/api";
 import { haversineMeters, bearingDeg, angleDelta } from "../services/geo";
 
@@ -185,7 +185,8 @@ export default function DriverView() {
       {/* subtle live accelerometer readout */}
       {active && accelView && (
         <div style={styles.accelLog}>
-          z {(accelView.lz || 0).toFixed(2)} m/s²  ·  x {(accelView.lx || 0).toFixed(2)}  y {(accelView.ly || 0).toFixed(2)}
+          ↓ {downwardStrength(accelView).toFixed(2)} m/s²  ·  x {(accelView.lx || 0).toFixed(2)} y{" "}
+          {(accelView.ly || 0).toFixed(2)} z {(accelView.lz || 0).toFixed(2)}
         </div>
       )}
 
