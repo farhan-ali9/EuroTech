@@ -3,6 +3,7 @@ import uuid
 from datetime import datetime, timedelta
 from typing import List, Optional
 from collections import defaultdict
+import database as db
 
 CLUSTER_RADIUS_M        = 50
 MIN_REPORTS             = 1    # 1 real report shows immediately on the map
@@ -52,6 +53,9 @@ class ClusteringService:
     def __init__(self):
         self._reports  = []
         self._hazards  = {}
+        # Load persisted driver-reported hazards from SQLite on startup
+        for h in db.load_all_hazards():
+            self._hazards[h["id"]] = h
 
     def add_report(self, lat: float, lng: float, event_type: str,
                    severity: float, confidence: float, weather_multiplier: float) -> Optional[str]:
@@ -112,12 +116,15 @@ class ClusteringService:
             "road_name":           None,
             "full_address":        None,
         }
+        db.save_hazard(self._hazards[hid])
         return hid
 
     def set_road_name(self, hid: str, road_name: str, full_address: str):
         if hid in self._hazards:
             self._hazards[hid]["road_name"]    = road_name
             self._hazards[hid]["full_address"] = full_address
+            if not self._hazards[hid].get("source"):
+                db.save_hazard(self._hazards[hid])
 
     def _update_hazard(self, hid: str, report: dict):
         h = self._hazards[hid]
@@ -140,6 +147,9 @@ class ClusteringService:
             h["government_reported"] = True
             h["reported_at"]         = datetime.utcnow().isoformat()
 
+        if not h.get("source"):
+            db.save_hazard(h)
+
     def _purge_old_reports(self):
         cutoff = datetime.utcnow() - timedelta(hours=HAZARD_EXPIRY_HRS)
         self._reports = [r for r in self._reports if r["timestamp"] > cutoff]
@@ -150,6 +160,7 @@ class ClusteringService:
         ]
         for hid in expired:
             del self._hazards[hid]
+        db.delete_expired_hazards(cutoff.isoformat())
 
     def inject_official_hazard(self, hazard: dict):
         """Add a pre-confirmed official hazard (HKO/TD data) bypassing report threshold."""

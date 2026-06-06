@@ -15,6 +15,10 @@ env/
 *.log
 backend.log
 
+# SQLite database (runtime data, not committed)
+*.db
+*.sqlite
+
 # Node
 node_modules/
 .npm/
