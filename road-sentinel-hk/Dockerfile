@@ -14,6 +14,11 @@ COPY frontend/package*.json ./frontend/
 RUN cd frontend && npm install
 
 COPY frontend/ ./frontend/
+
+# Declare build arg so Render passes VITE_MAPBOX_TOKEN into the npm build
+ARG VITE_MAPBOX_TOKEN
+ENV VITE_MAPBOX_TOKEN=$VITE_MAPBOX_TOKEN
+
 RUN cd frontend && npm run build
 
 # Copy backend source

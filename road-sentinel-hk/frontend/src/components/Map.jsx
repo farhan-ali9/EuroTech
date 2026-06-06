@@ -3,7 +3,7 @@ import mapboxgl from "mapbox-gl";
 
 // Mapbox public access token should be provided via Vite environment variables.
 // Create a .env file with VITE_MAPBOX_TOKEN=pk.your_public_token and do not commit it.
-mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_TOKEN || "YOUR_MAPBOX_PUBLIC_TOKEN";
+mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_TOKEN || "";
 
 const TYPE_COLORS = { pothole: "#ef4444" };
 const TYPE_ICONS  = { pothole: "🕳️" };
