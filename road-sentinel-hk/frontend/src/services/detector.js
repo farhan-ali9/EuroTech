@@ -12,9 +12,9 @@ const COOLDOWN_MS = 1500; // one bump = one event
 // Map vertical (z-axis) jolt strength (m/s²) to a 1-5 severity.
 export function severityFromStrength(a) {
   if (a < 5) return 1;
-  if (a < 7) return 2;
-  if (a < 11) return 3;
-  if (a < 16) return 4;
+  if (a < 6) return 2;
+  if (a < 7) return 3;
+  if (a < 10) return 4;
   return 5;
 }
 
