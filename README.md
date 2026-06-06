@@ -198,17 +198,17 @@ docker compose exec db psql -U bumpless -d bumpless -c "TRUNCATE defects;"
 
 ## Bump detection
 
-**Demo (current code).** Severity comes from one value — the **absolute strength of the
-acceleration the phone feels**, i.e. the magnitude of the gravity-removed vector:
+**Demo (current code).** Severity comes from one value — the **up/down jolt along the
+phone's screen-normal (z) axis** (gravity removed):
 
 ```
-|a| = sqrt(lx² + ly² + lz²)     # lx, ly, lz from DeviceMotionEvent.acceleration
+|z| = |acceleration.z|     # from DeviceMotionEvent.acceleration; vertical when the phone lies flat
 ```
 
-A bump fires when `|a|` exceeds a threshold (with a short debounce so one pothole = one
-event), and `|a|` is bucketed into severity 1–5. There is **no speed gate and no axis
-isolation**, so you can test it by shaking the phone. Deliberately simple — see
-`frontend/src/services/detector.js`.
+A bump fires when `|z|` exceeds a threshold (with a short debounce so one pothole = one
+event), and `|z|` is bucketed into severity 1–5. There is **no speed gate**, and it
+assumes the phone is lying flat (no full-orientation handling), so you can test it by
+tapping the phone's face. Deliberately simple — see `frontend/src/services/detector.js`.
 
 **How it should work (production).** Raw magnitude alone isn't enough:
 - **Speed gate** — ignore readings under ~8 km/h (phone handling while parked/walking).

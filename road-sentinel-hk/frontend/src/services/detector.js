@@ -1,17 +1,15 @@
 // Bump detector — DEMO version.
 //
-// Severity is derived from ONE thing only: the absolute strength of the
-// acceleration the phone feels, i.e. the magnitude of the (gravity-removed)
-// acceleration vector:  |a| = sqrt(lx² + ly² + lz²).
-// Everything else (speed gating, vertical-axis isolation, windowed peaks,
-// per-vehicle calibration, corroboration) is intentionally ignored here so the
-// demo is trivial to reason about and you can test it just by shaking the phone.
-// See the README ("Bump detection") for how this should work in production.
+// Severity is derived from ONE thing only: the up/down acceleration along the
+// phone's screen-normal (z) axis — |z| = |acceleration.z| (gravity removed).
+// When the phone lies flat, that's the vertical jolt. Everything else (speed
+// gating, full-orientation handling, windowed peaks, per-vehicle calibration,
+// corroboration) is intentionally ignored here. See the README ("Bump detection").
 
 const MIN_STRENGTH = 7; // m/s² — below this isn't recorded (less sensitive)
 const COOLDOWN_MS = 1500; // one bump = one event
 
-// Map absolute acceleration strength (m/s²) to a 1-5 severity.
+// Map vertical (z-axis) jolt strength (m/s²) to a 1-5 severity.
 // Scale shifted up so a firmer jolt is needed: what used to read "3" is now "1".
 export function severityFromStrength(a) {
   if (a < 11) return 1;
@@ -27,8 +25,8 @@ export function createDetector(onDefect) {
 
   return {
     feed(reading) {
-      const { lx = 0, ly = 0, lz = 0 } = reading || {};
-      const strength = Math.sqrt(lx * lx + ly * ly + lz * lz); // |a|, gravity already removed
+      const { lz = 0 } = reading || {};
+      const strength = Math.abs(lz); // z-axis only: up/down through the screen (gravity removed)
 
       if (strength <= MIN_STRENGTH) return;
 

@@ -19,10 +19,6 @@ const SEVERITY_COLORS = { 1: "#22c55e", 2: "#84cc16", 3: "#eab308", 4: "#f97316"
 const SEVERITY_LABELS = { 1: "Minor", 2: "Low", 3: "Moderate", 4: "High", 5: "Severe" };
 const sev = (s) => Math.max(1, Math.min(5, Math.round(s || 1)));
 
-// Absolute acceleration strength |a| = sqrt(lx² + ly² + lz²) (gravity removed).
-const joltOf = (r) =>
-  r ? Math.sqrt((r.lx || 0) ** 2 + (r.ly || 0) ** 2 + (r.lz || 0) ** 2) : 0;
-
 export default function DriverView() {
   const [active, setActive] = useState(false);
   const [gps, setGps] = useState(null);
@@ -189,8 +185,7 @@ export default function DriverView() {
       {/* subtle live accelerometer readout */}
       {active && accelView && (
         <div style={styles.accelLog}>
-          x {(accelView.lx || 0).toFixed(2)}  y {(accelView.ly || 0).toFixed(2)}  z{" "}
-          {(accelView.lz || 0).toFixed(2)}  ·  |a| {joltOf(accelView).toFixed(2)} m/s²
+          z {(accelView.lz || 0).toFixed(2)} m/s²  ·  x {(accelView.lx || 0).toFixed(2)}  y {(accelView.ly || 0).toFixed(2)}
         </div>
       )}
 
