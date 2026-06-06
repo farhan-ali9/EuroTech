@@ -9,6 +9,7 @@ import { haversineMeters } from "../services/geo";
 
 const WARN_RANGE_M = 150; // start warning when a defect is this close
 const NEARBY_REFRESH_MS = 15000; // re-fetch the local defect set this often
+const ACCEL_VIEW_MS = 150; // throttle for the live accelerometer readout
 
 const BRAND = "#2C5364"; // app theme color
 const PAGE_BG = "linear-gradient(180deg,#f5f8f9 0%,#e6eef0 100%)";
@@ -17,6 +18,12 @@ const SEVERITY_COLORS = { 1: "#22c55e", 2: "#84cc16", 3: "#eab308", 4: "#f97316"
 const SEVERITY_LABELS = { 1: "Minor", 2: "Low", 3: "Moderate", 4: "High", 5: "Severe" };
 const sev = (s) => Math.max(1, Math.min(5, Math.round(s || 1)));
 
+const joltOf = (r) => {
+  if (!r) return 0;
+  const m = Math.sqrt((r.lx || 0) ** 2 + (r.ly || 0) ** 2 + (r.lz || 0) ** 2);
+  return m < 0.3 ? Math.max(0, Math.abs(r.z || 0) - 9.81) : m;
+};
+
 export default function DriverView() {
   const [active, setActive] = useState(false);
   const [gps, setGps] = useState(null);
@@ -24,10 +31,12 @@ export default function DriverView() {
   const [logged, setLogged] = useState(0);
   const [flash, setFlash] = useState(null); // severity of last-logged defect
   const [error, setError] = useState(null);
+  const [accelView, setAccelView] = useState(null); // throttled live reading
 
   const stopGps = useRef(null);
   const stopAccel = useRef(null);
   const latestGps = useRef(null);
+  const latestAccel = useRef(null);
   const nearby = useRef([]);
   const detector = useRef(null);
 
@@ -78,7 +87,10 @@ export default function DriverView() {
 
     const source = createAccelSource();
     stopAccel.current = source.start(
-      (reading) => detector.current?.feed(reading, latestGps.current?.speed_kmh ?? 0),
+      (reading) => {
+        latestAccel.current = reading;
+        detector.current?.feed(reading, latestGps.current?.speed_kmh ?? 0);
+      },
       (err) => setError(`Motion: ${err}`)
     );
 
@@ -102,6 +114,16 @@ export default function DriverView() {
     return () => clearInterval(t);
   }, [active, updateWarning]);
 
+  // Throttled live accelerometer readout for the status line.
+  useEffect(() => {
+    if (!active) {
+      setAccelView(null);
+      return;
+    }
+    const t = setInterval(() => setAccelView(latestAccel.current), ACCEL_VIEW_MS);
+    return () => clearInterval(t);
+  }, [active]);
+
   useEffect(() => () => stopAll(), [stopAll]);
 
   const close = warning && warning.distance < 80;
@@ -112,7 +134,7 @@ export default function DriverView() {
       style={{
         ...styles.page,
         background: close
-          ? `radial-gradient(circle at 50% 36%, ${warnColor}2b, #eef3f5 70%)`
+          ? `radial-gradient(circle at 50% 40%, ${warnColor}26, #eef3f5 72%)`
           : PAGE_BG,
       }}
     >
@@ -129,6 +151,14 @@ export default function DriverView() {
           </Link>
         )}
       </div>
+
+      {/* subtle live accelerometer readout */}
+      {active && accelView && (
+        <div style={styles.accelLog}>
+          x {(accelView.lx || 0).toFixed(2)}  y {(accelView.ly || 0).toFixed(2)}  z{" "}
+          {(accelView.lz || 0).toFixed(2)}  ·  |a| {joltOf(accelView).toFixed(2)} m/s²
+        </div>
+      )}
 
       {/* main */}
       <div style={styles.main}>
@@ -210,65 +240,70 @@ function Warning({ warning, color, close, gps }) {
   const secs = speed > 1 ? Math.round(warning.distance / (speed / 3.6)) : null;
 
   return (
-    <div style={{ textAlign: "center", width: "100%", maxWidth: 420, padding: "0 22px" }}>
+    <div style={{ textAlign: "center", width: "100%", maxWidth: 440, padding: "0 22px" }}>
       <div style={{ fontSize: 13, fontWeight: 800, letterSpacing: 1.5, color }}>
         {close ? "DEFECT IMMINENT" : "DEFECT AHEAD"}
       </div>
 
-      <div
-        style={{
-          ...styles.sevBadge,
-          background: color,
-          animation: close ? "pulse 0.8s infinite" : "none",
-        }}
-      >
-        {s}
+      {/* radar-style proximity signal — the main element */}
+      <div style={{ marginTop: 8, display: "flex", justifyContent: "center" }}>
+        <ProximitySignal color={color} fill={fill} size={250} urgent={close} />
       </div>
-      <div style={{ fontSize: 15, fontWeight: 700, color, marginTop: 8 }}>
-        Severity {s}/5 · {SEVERITY_LABELS[s]}
-      </div>
-      {warning.defect.road_name && (
-        <div style={{ fontSize: 13, color: "#5a7480", marginTop: 4 }}>{warning.defect.road_name}</div>
-      )}
 
-      <div style={{ marginTop: 26 }}>
+      {/* distance to the defect */}
+      <div style={{ marginTop: 2 }}>
         <span style={{ fontSize: 64, fontWeight: 800, lineHeight: 1, color: "#152830", fontVariantNumeric: "tabular-nums" }}>
           {dist}
         </span>
-        <span style={{ fontSize: 20, color: "#90a4ac", fontWeight: 600 }}> m</span>
+        <span style={{ fontSize: 22, color: "#90a4ac", fontWeight: 600 }}> m</span>
       </div>
       {secs != null && <div style={{ fontSize: 13, color: "#90a4ac", marginTop: 2 }}>~{secs}s away</div>}
 
-      <div style={{ marginTop: 28, display: "flex", justifyContent: "center" }}>
-        <ProximitySignal color={color} fill={fill} />
+      {/* severity (secondary) */}
+      <div style={{ marginTop: 18, display: "inline-flex", alignItems: "center", gap: 8 }}>
+        <span style={{ width: 12, height: 12, borderRadius: "50%", background: color }} />
+        <span style={{ fontSize: 14, fontWeight: 700, color: "#152830" }}>
+          Severity {s}/5 · {SEVERITY_LABELS[s]}
+        </span>
       </div>
+      {warning.defect.road_name && (
+        <div style={{ fontSize: 13, color: "#7c95a0", marginTop: 4 }}>{warning.defect.road_name}</div>
+      )}
     </div>
   );
 }
 
-// WiFi-style proximity glyph: a dot with concentric arcs that light up
-// (inner → outer) as you close in on the defect.
-function ProximitySignal({ color, fill }) {
+// Radar-style proximity glyph: a dot with concentric arcs that light up and pulse
+// outward (inner → outer) as you close in — louder/faster when imminent.
+function ProximitySignal({ color, fill, size = 250, urgent = false }) {
   const litArcs = Math.round(Math.max(0, Math.min(1, fill)) * 3); // 0..3 arcs
-  const dim = "rgba(20,40,48,0.12)";
+  const dim = "rgba(20,40,48,0.09)";
   const arcs = [
     "M39.4 51.4 A15 15 0 0 1 60.6 51.4",
     "M30.2 42.2 A28 28 0 0 1 69.8 42.2",
     "M21 33 A41 41 0 0 1 79 33",
   ];
+  const dur = urgent ? 1.0 : 1.8;
   return (
-    <svg width="118" height="85" viewBox="0 0 100 72" fill="none">
-      {arcs.map((d, i) => (
-        <path
-          key={i}
-          d={d}
-          stroke={i < litArcs ? color : dim}
-          strokeWidth="7"
-          strokeLinecap="round"
-          style={{ transition: "stroke 0.2s" }}
-        />
-      ))}
-      <circle cx="50" cy="62" r="6" fill={color} />
+    <svg width={size} height={size * 0.72} viewBox="0 0 100 72" fill="none">
+      {arcs.map((d, i) => {
+        const lit = i < litArcs;
+        return (
+          <path
+            key={i}
+            d={d}
+            stroke={lit ? color : dim}
+            strokeWidth="5"
+            strokeLinecap="round"
+            style={
+              lit
+                ? { animation: `wifiPulse ${dur}s ${i * 0.22}s ease-in-out infinite` }
+                : { transition: "stroke 0.2s" }
+            }
+          />
+        );
+      })}
+      <circle cx="50" cy="62" r="5.5" fill={color} />
     </svg>
   );
 }
@@ -327,6 +362,16 @@ const styles = {
     borderRadius: 9,
     padding: "7px 14px",
   },
+  accelLog: {
+    flexShrink: 0,
+    textAlign: "center",
+    fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+    fontSize: 10.5,
+    fontWeight: 400,
+    letterSpacing: 0.2,
+    color: "#9fb1b9",
+    padding: "0 16px 2px",
+  },
   main: { flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" },
   bottom: { padding: "12px 20px calc(env(safe-area-inset-bottom) + 22px)", flexShrink: 0 },
   tripStat: { textAlign: "center", fontSize: 13, color: "#7c95a0", marginBottom: 12, fontWeight: 500 },
@@ -340,20 +385,6 @@ const styles = {
     border: "none",
     borderRadius: 16,
     cursor: "pointer",
-  },
-  sevBadge: {
-    width: 92,
-    height: 92,
-    borderRadius: "50%",
-    color: "#fff",
-    fontSize: 50,
-    fontWeight: 800,
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    margin: "16px auto 0",
-    boxShadow: "0 10px 30px rgba(20,40,48,0.18)",
-    fontVariantNumeric: "tabular-nums",
   },
   radar: {
     position: "relative",
