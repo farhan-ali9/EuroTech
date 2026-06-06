@@ -13,7 +13,7 @@ Judges compare this against `git shortlog -sn`, so keep it honest.
 |---|---|---|
 |  |  |  |
 |  |  |  |
-| Adrian | adrks10 | hardware sensor firmware |
+| Adrian | adrks10 | hardware sensor firmware: main.m5f2 |
 
 ---
 
