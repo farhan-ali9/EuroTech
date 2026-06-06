@@ -13,7 +13,7 @@ Judges compare this against `git shortlog -sn`, so keep it honest.
 |---|---|---|
 |  |  |  |
 |  |  |  |
-|  |  |  |
+| Adrian | adrks10 | hardware sensor firmware |
 
 ---
 
@@ -68,6 +68,6 @@ If none, write: *"All code in this repo was written during the hackathon window.
 ## 6. Known limitations & next steps
 What we would build next, and the weak spots we already know about. Naming these honestly is a strength, not a flaw.
 
-- 
+- The dedicated hardware sensor is not uploadig data to the system, yet. It is only detecting and storing it locally. The connection to eg. a smartphonbw needs to be done, to include location data and an upload path.
 - 
 - 
