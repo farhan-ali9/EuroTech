@@ -32,13 +32,8 @@ MOCK = [
     ("hk-kings",      22.2915, 114.2005, 4,  6, "King's Road",            110, 2),
     ("hk-aberdeen",   22.2475, 114.1545, 2,  3, "Aberdeen Praya Road",     54, 7),
 
-    # ── Munich / Garching ──────────────────────────────────────────────────────
-    ("muc-garching",  48.265384, 11.663783, 5, 10, "Garching b. München",  160, 0.5),
-    ("muc-boltzmann", 48.2625,   11.6700,   3,  4, "Boltzmannstraße",       80, 3),
-    ("muc-lichtenb",  48.2680,   11.6588,   2,  3, "Lichtenbergstraße",     50, 5),
-    ("muc-dyck",      48.2498,   11.6512,   4,  6, "Walther-von-Dyck-Straße", 120, 2),
-    ("muc-leopold",   48.1632,   11.5870,   4,  7, "Leopoldstraße",        140, 1),
-    ("muc-lindwurm",  48.1486,   11.5670,   3,  5, "Lindwurmstraße",        70, 4),
+    # ── Munich (single point, Garching) ─────────────────────────────────────────
+    ("muc-garching",  48.26836627605025, 11.666547175506365, 4, 6, "Garching b. München", 120, 1),
 ]
 
 
