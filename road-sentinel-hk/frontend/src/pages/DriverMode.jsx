@@ -1,15 +1,16 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { Mark } from "../components/Logo";
-import { startGPS } from "../services/sensors";
+import { startGPS, startCompass } from "../services/sensors";
 import { createAccelSource } from "../services/accelSource";
 import { createDetector } from "../services/detector";
 import { sendReport, fetchNearby } from "../services/api";
-import { haversineMeters } from "../services/geo";
+import { haversineMeters, bearingDeg, angleDelta } from "../services/geo";
 
 const WARN_RANGE_M = 150; // start warning when a defect is this close
 const NEARBY_REFRESH_MS = 15000; // re-fetch the local defect set this often
 const ACCEL_VIEW_MS = 150; // throttle for the live accelerometer readout
+const AHEAD_CONE_DEG = 80; // only warn about defects within this cone of travel direction
 
 const BRAND = "#2C5364"; // app theme color
 const PAGE_BG = "linear-gradient(180deg,#f5f8f9 0%,#e6eef0 100%)";
@@ -33,17 +34,34 @@ export default function DriverView() {
 
   const stopGps = useRef(null);
   const stopAccel = useRef(null);
+  const stopCompass = useRef(null);
   const latestGps = useRef(null);
   const latestAccel = useRef(null);
+  const prevPos = useRef(null); // previous GPS fix, for deriving heading
+  const heading = useRef(null); // GPS-derived travel heading (deg) or null
+  const compass = useRef(null); // phone-facing heading (deg) from the compass
+  const lastCompassWarn = useRef(0);
   const nearby = useRef([]);
   const detector = useRef(null);
 
   const updateWarning = useCallback((pos) => {
+    const speed = pos.speed_kmh ?? 0;
+    // Prefer the compass (where the front of the phone points); once moving
+    // fast, trust the GPS course more (compass can drift in a car).
+    const hdg =
+      speed > 30 && heading.current != null
+        ? heading.current
+        : compass.current != null
+        ? compass.current
+        : heading.current;
     let nearest = null;
     let best = Infinity;
     for (const d of nearby.current) {
       const dist = haversineMeters(pos, d);
-      if (dist <= WARN_RANGE_M && dist < best) {
+      if (dist > WARN_RANGE_M) continue;
+      // When we know our heading, only warn about defects roughly ahead.
+      if (hdg != null && angleDelta(hdg, bearingDeg(pos, d)) > AHEAD_CONE_DEG) continue;
+      if (dist < best) {
         best = dist;
         nearest = d;
       }
@@ -63,9 +81,14 @@ export default function DriverView() {
   const stopAll = useCallback(() => {
     stopGps.current?.();
     stopAccel.current?.();
+    stopCompass.current?.();
     stopGps.current = null;
     stopAccel.current = null;
+    stopCompass.current = null;
     detector.current = null;
+    prevPos.current = null;
+    heading.current = null;
+    compass.current = null;
     setActive(false);
     setWarning(null);
   }, []);
@@ -78,6 +101,14 @@ export default function DriverView() {
       (pos) => {
         setGps(pos);
         latestGps.current = pos;
+        // Derive heading from movement; unknown when slow/stopped (so the
+        // shake-test and parked use still show every nearby defect).
+        if (pos.speed_kmh > 5 && prevPos.current && haversineMeters(prevPos.current, pos) > 4) {
+          heading.current = bearingDeg(prevPos.current, pos);
+        } else if (pos.speed_kmh <= 5) {
+          heading.current = null;
+        }
+        prevPos.current = pos;
         updateWarning(pos);
       },
       (err) => setError(`GPS: ${err}`)
@@ -90,6 +121,19 @@ export default function DriverView() {
         detector.current?.feed(reading);
       },
       (err) => setError(`Motion: ${err}`)
+    );
+
+    // Compass — direction the front of the phone points (Google-Maps style).
+    stopCompass.current = startCompass(
+      (h) => {
+        compass.current = h;
+        const now = Date.now();
+        if (now - lastCompassWarn.current > 200 && latestGps.current) {
+          lastCompassWarn.current = now;
+          updateWarning(latestGps.current);
+        }
+      },
+      () => {} // no compass → fall back to GPS-derived heading
     );
 
     setActive(true);

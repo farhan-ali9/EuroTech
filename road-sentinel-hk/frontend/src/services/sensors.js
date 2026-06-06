@@ -67,3 +67,43 @@ function _listenMotion(onReading) {
   };
   window.addEventListener("devicemotion", _motionHandler, { passive: true });
 }
+
+// ─── COMPASS / HEADING ──────────────────────────────────────────────────────────
+// Direction the front of the phone points (0=N, clockwise), like Google Maps.
+let _orientHandler = null;
+
+export function startCompass(onHeading, onError) {
+  const listen = () => {
+    _orientHandler = (e) => {
+      let h = null;
+      if (typeof e.webkitCompassHeading === "number" && !Number.isNaN(e.webkitCompassHeading)) {
+        h = e.webkitCompassHeading; // iOS: degrees clockwise from north
+      } else if (e.absolute && typeof e.alpha === "number") {
+        h = (360 - e.alpha) % 360; // Android absolute orientation
+      }
+      if (h != null) onHeading(h);
+    };
+    window.addEventListener("deviceorientationabsolute", _orientHandler, { passive: true });
+    window.addEventListener("deviceorientation", _orientHandler, { passive: true });
+  };
+
+  // iOS 13+ requires explicit permission (from a user gesture).
+  if (typeof DeviceOrientationEvent !== "undefined" &&
+      typeof DeviceOrientationEvent.requestPermission === "function") {
+    DeviceOrientationEvent.requestPermission()
+      .then((state) => (state === "granted" ? listen() : onError?.("Compass permission denied")))
+      .catch((err) => onError?.(String(err)));
+  } else if (typeof DeviceOrientationEvent !== "undefined") {
+    listen();
+  } else {
+    onError?.("Compass not supported");
+  }
+
+  return () => {
+    if (_orientHandler) {
+      window.removeEventListener("deviceorientationabsolute", _orientHandler);
+      window.removeEventListener("deviceorientation", _orientHandler);
+    }
+    _orientHandler = null;
+  };
+}
