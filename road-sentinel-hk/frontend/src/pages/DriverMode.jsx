@@ -336,12 +336,13 @@ function ProximitySignal({ fill, size = 220 }) {
 }
 
 function Flash({ severity }) {
-  const color = SEVERITY_COLORS[severity];
+  const WARN = "#f59e0b"; // amber warning
   return (
-    <div style={{ ...styles.flash, background: `${color}22` }}>
-      <svg width="62" height="62" viewBox="0 0 24 24" fill="none">
-        <circle cx="12" cy="12" r="11" fill={color} />
-        <path d="M7 12.4l3.2 3.2L17 9" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+    <div style={{ ...styles.flash, background: `${WARN}22` }}>
+      <svg width="64" height="64" viewBox="0 0 24 24" fill="none">
+        <path d="M12 4 L21 19.5 H3 Z" fill={WARN} stroke={WARN} strokeWidth="2.5" strokeLinejoin="round" />
+        <path d="M12 10.5 V14" stroke="#fff" strokeWidth="2" strokeLinecap="round" />
+        <circle cx="12" cy="16.7" r="1.15" fill="#fff" />
       </svg>
       <div style={{ fontSize: 17, fontWeight: 700, color: "#152830", marginTop: 12 }}>Defect logged</div>
       <div style={{ fontSize: 13, color: "#5a7480", marginTop: 2 }}>
