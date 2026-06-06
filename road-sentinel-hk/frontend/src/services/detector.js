@@ -8,15 +8,16 @@
 // demo is trivial to reason about and you can test it just by shaking the phone.
 // See the README ("Bump detection") for how this should work in production.
 
-const MIN_STRENGTH = 2.5; // m/s² — below this is normal handling noise
+const MIN_STRENGTH = 7; // m/s² — below this isn't recorded (less sensitive)
 const COOLDOWN_MS = 1500; // one bump = one event
 
 // Map absolute acceleration strength (m/s²) to a 1-5 severity.
+// Scale shifted up so a firmer jolt is needed: what used to read "3" is now "1".
 export function severityFromStrength(a) {
-  if (a < 4) return 1;
-  if (a < 7) return 2;
-  if (a < 11) return 3;
-  if (a < 16) return 4;
+  if (a < 11) return 1;
+  if (a < 16) return 2;
+  if (a < 22) return 3;
+  if (a < 30) return 4;
   return 5;
 }
 
