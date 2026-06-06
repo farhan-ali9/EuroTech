@@ -12,6 +12,7 @@ from models.vision import analyse_frame
 from services.hko import get_current_weather
 from services.clustering import ClusteringService
 from services.geocoding import reverse_geocode
+from services import hk_incidents
 
 clustering = ClusteringService()
 _weather_cache = {"data": None, "last_fetch": None}
@@ -24,6 +25,20 @@ async def refresh_weather():
         _weather_cache["data"] = data
         _weather_cache["last_fetch"] = datetime.utcnow().isoformat()
         await asyncio.sleep(60)
+
+
+async def refresh_incidents():
+    """Fetch real HKO rainfall + TD road events every 5 minutes."""
+    while True:
+        try:
+            live = await hk_incidents.get_live_hazards()
+            clustering.clear_official_hazards()
+            for h in live:
+                clustering.inject_official_hazard(h)
+            print(f"[Incidents] Loaded {len(live)} live official hazards (HKO+TD)")
+        except Exception as e:
+            print(f"[Incidents] Refresh error: {e}")
+        await asyncio.sleep(300)
 
 
 async def broadcast_loop():
@@ -49,6 +64,7 @@ async def broadcast_loop():
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     asyncio.create_task(refresh_weather())
+    asyncio.create_task(refresh_incidents())
     asyncio.create_task(broadcast_loop())
     yield
 
@@ -83,6 +99,9 @@ async def receive_report(data: dict):
         x=accel_raw.get("x", 0),
         y=accel_raw.get("y", 0),
         speed_kmh=speed,
+        lx=accel_raw.get("lx", 0.0),
+        ly=accel_raw.get("ly", 0.0),
+        lz=accel_raw.get("lz", 0.0),
     )
 
     # Sound analysis
@@ -108,12 +127,6 @@ async def receive_report(data: dict):
 
     if result is None:
         return {"status": "ok", "hazard_detected": False}
-
-    was_confirmed_before = any(
-        h["id"] == hid and h["confirmed"]
-        for hid, h in clustering._hazards.items()
-        for _ in [None]
-    ) if False else False
 
     hazard_id = clustering.add_report(
         lat=lat,
@@ -220,6 +233,19 @@ async def root():
         "ts":        datetime.utcnow().isoformat(),
     }
 
+@app.post("/incidents/refresh")
+async def manual_refresh_incidents():
+    """Manually trigger a refresh of live HKO + TD hazard data."""
+    try:
+        live = await hk_incidents.get_live_hazards()
+        clustering.clear_official_hazards()
+        for h in live:
+            clustering.inject_official_hazard(h)
+        return {"status": "ok", "injected": len(live), "timestamp": datetime.utcnow().isoformat()}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+
 @app.get("/government/alerts")
 async def government_alerts():
     all_hazards = clustering.get_confirmed_hazards()
@@ -234,3 +260,8 @@ async def government_alerts():
 @app.get("/health")
 async def health():
     return {"status": "ok", "clients": len(_ws_clients), "ts": datetime.utcnow().isoformat()}
+
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)

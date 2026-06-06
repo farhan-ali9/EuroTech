@@ -1,9 +1,12 @@
-const BASE = window.location.hostname === "localhost"
-  ? "http://localhost:8000"
-  : `http://10.183.179.61:8000`;
+// All requests go through the Vite proxy → backend on :8000
+// Using relative paths means HTTPS (frontend) proxies to HTTP (backend) server-side
+// so the phone only needs to trust ONE cert (the Vite self-signed cert).
+
+const WS_PROTOCOL = window.location.protocol === "https:" ? "wss" : "ws";
+const WS_BASE = `${WS_PROTOCOL}://${window.location.host}`;
 
 export async function sendReport(payload) {
-  const res = await fetch(`${BASE}/report`, {
+  const res = await fetch("/report", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
@@ -12,27 +15,27 @@ export async function sendReport(payload) {
 }
 
 export async function fetchHazards() {
-  const res = await fetch(`${BASE}/hazards`);
+  const res = await fetch("/hazards");
   return res.json();
 }
 
 export async function fetchNearby(lat, lng, radius = 300) {
-  const res = await fetch(`${BASE}/hazards/nearby?lat=${lat}&lng=${lng}&radius=${radius}`);
+  const res = await fetch(`/hazards/nearby?lat=${lat}&lng=${lng}&radius=${radius}`);
   return res.json();
 }
 
 export async function fetchWeather() {
-  const res = await fetch(`${BASE}/weather`);
+  const res = await fetch("/weather");
   return res.json();
 }
 
 export async function fetchGovernmentAlerts() {
-  const res = await fetch(`${BASE}/government/alerts`);
+  const res = await fetch("/government/alerts");
   return res.json();
 }
 
 export function createWebSocket(onMessage) {
-  const ws = new WebSocket(`ws://localhost:8000/ws`);
+  const ws = new WebSocket(`${WS_BASE}/ws`);
 
   ws.onmessage = (e) => {
     try {
@@ -43,7 +46,6 @@ export function createWebSocket(onMessage) {
   ws.onerror = (e) => console.error("WS error", e);
 
   ws.onclose = () => {
-    // Reconnect after 3 seconds
     setTimeout(() => createWebSocket(onMessage), 3000);
   };
 

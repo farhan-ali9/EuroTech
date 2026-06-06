@@ -48,12 +48,18 @@ let _motionHandler = null;
 
 function _listenMotion(onReading) {
   _motionHandler = (e) => {
-    const a = e.accelerationIncludingGravity;
-    if (!a) return;
+    const ag = e.accelerationIncludingGravity;  // includes gravity — for display
+    const a  = e.acceleration;                  // linear only, gravity removed by device — for detection
+    if (!ag) return;
     onReading({
-      x: a.x || 0,
-      y: a.y || 0,
-      z: a.z || 0,
+      // Raw values (include gravity) — used for display bars
+      x: ag.x ?? 0,
+      y: ag.y ?? 0,
+      z: ag.z ?? 0,
+      // Linear acceleration (no gravity) — orientation-independent, used for detection
+      lx: a?.x ?? 0,
+      ly: a?.y ?? 0,
+      lz: a?.z ?? 0,
       interval: e.interval,
     });
   };
