@@ -2,27 +2,18 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import basicSsl from "@vitejs/plugin-basic-ssl";
 
+// HTTPS is required so the phone's motion/GPS sensors work (secure context).
+// API calls use relative paths and are proxied to the backend on :8000.
 export default defineConfig({
   plugins: [react(), basicSsl()],
   server: {
-    port: 3001,
+    port: 3000,
     host: "0.0.0.0",
     https: true,
     proxy: {
-      // WebSocket — must be listed first with ws: true
-      "/ws": {
-        target: "ws://localhost:8000",
-        ws: true,
-        changeOrigin: true,
-      },
-      // REST endpoints
-      "/report":      { target: "http://localhost:8000", changeOrigin: true },
-      "/hazards":     { target: "http://localhost:8000", changeOrigin: true },
-      "/weather":     { target: "http://localhost:8000", changeOrigin: true },
-      "/stats":       { target: "http://localhost:8000", changeOrigin: true },
-      "/government":  { target: "http://localhost:8000", changeOrigin: true },
-      "/incidents":   { target: "http://localhost:8000", changeOrigin: true },
-      "/health":      { target: "http://localhost:8000", changeOrigin: true },
+      "/report": { target: "http://localhost:8000", changeOrigin: true },
+      "/hazards": { target: "http://localhost:8000", changeOrigin: true },
+      "/health": { target: "http://localhost:8000", changeOrigin: true },
     },
   },
 });

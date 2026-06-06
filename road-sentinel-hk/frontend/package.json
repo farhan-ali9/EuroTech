@@ -1,11 +1,12 @@
 {
-  "name": "road-sentinel-hk",
+  "name": "bumpless",
   "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "tunnel": "cloudflared tunnel --url https://localhost:3000 --http-host-header localhost"
   },
   "dependencies": {
     "mapbox-gl": "^3.4.0",
