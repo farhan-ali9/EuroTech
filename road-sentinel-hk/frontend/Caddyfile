@@ -1,0 +1,18 @@
+bump-less.club {
+	# Caddy automatically obtains & renews a Let's Encrypt certificate for this
+	# domain (HTTP-01 challenge on :80) and redirects HTTP → HTTPS.
+	encode gzip
+	root * /srv
+
+	# API → backend container
+	@api path /report /report/* /hazards /hazards/* /health
+	handle @api {
+		reverse_proxy backend:8000
+	}
+
+	# SPA fallback
+	handle {
+		try_files {path} /index.html
+		file_server
+	}
+}
