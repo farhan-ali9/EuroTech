@@ -6,16 +6,15 @@
 // gating, full-orientation handling, windowed peaks, per-vehicle calibration,
 // corroboration) is intentionally ignored here. See the README ("Bump detection").
 
-const MIN_STRENGTH = 7; // m/s² — below this isn't recorded (less sensitive)
+const MIN_STRENGTH = 3; // m/s² — below this isn't recorded
 const COOLDOWN_MS = 1500; // one bump = one event
 
 // Map vertical (z-axis) jolt strength (m/s²) to a 1-5 severity.
-// Scale shifted up so a firmer jolt is needed: what used to read "3" is now "1".
 export function severityFromStrength(a) {
-  if (a < 11) return 1;
-  if (a < 16) return 2;
-  if (a < 22) return 3;
-  if (a < 30) return 4;
+  if (a < 5) return 1;
+  if (a < 7) return 2;
+  if (a < 11) return 3;
+  if (a < 16) return 4;
   return 5;
 }
 
