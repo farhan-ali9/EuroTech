@@ -7,9 +7,9 @@ import { createDetector } from "../services/detector";
 import { sendReport, fetchNearby } from "../services/api";
 import { haversineMeters } from "../services/geo";
 
-const WARN_RANGE_M = 300; // start warning when a defect is this close
+const WARN_RANGE_M = 150; // start warning when a defect is this close
 const NEARBY_REFRESH_MS = 15000; // re-fetch the local defect set this often
-const SEG_COUNT = 14; // proximity bar segments
+const SEG_COUNT = 6; // proximity bars (wifi signal-strength style)
 
 const BRAND = "#2C5364"; // app theme color
 const PAGE_BG = "linear-gradient(180deg,#f5f8f9 0%,#e6eef0 100%)";
@@ -246,11 +246,11 @@ function Warning({ warning, color, close, gps }) {
           <div
             key={i}
             style={{
-              flex: 1,
-              height: 14 + i * 1.5,
-              borderRadius: 3,
+              width: 16,
+              height: 14 + i * 10,
+              borderRadius: 4,
               background: i < filled ? color : "rgba(20,40,48,0.10)",
-              transition: "background 0.2s",
+              transition: "background 0.2s, height 0.2s",
             }}
           />
         ))}
@@ -341,7 +341,7 @@ const styles = {
     boxShadow: "0 10px 30px rgba(20,40,48,0.18)",
     fontVariantNumeric: "tabular-nums",
   },
-  segRow: { display: "flex", alignItems: "flex-end", gap: 4, marginTop: 26, height: 38 },
+  segRow: { display: "flex", justifyContent: "center", alignItems: "flex-end", gap: 8, marginTop: 26, height: 70 },
   radar: {
     position: "relative",
     width: 128,
