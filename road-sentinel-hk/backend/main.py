@@ -289,15 +289,6 @@ async def websocket_endpoint(websocket: WebSocket):
             _ws_clients.remove(websocket)
 
 
-@app.get("/")
-async def root():
-    return {
-        "name":      "Road Sentinel HK",
-        "status":    "running",
-        "endpoints": ["/hazards", "/hazards/nearby", "/weather", "/stats", "/health", "/ws", "/docs"],
-        "ts":        datetime.utcnow().isoformat(),
-    }
-
 
 @app.get("/government/alerts")
 async def government_alerts():
@@ -351,10 +342,13 @@ async def health():
 _DIST = os.path.join(os.path.dirname(__file__), "..", "frontend", "dist")
 
 if os.path.isdir(_DIST):
+    # Serve static assets (JS/CSS/images) directly
     app.mount("/assets", StaticFiles(directory=os.path.join(_DIST, "assets")), name="assets")
 
-    @app.get("/{full_path:path}")
-    async def serve_spa(full_path: str):
+    # SPA fallback — all other paths return index.html so React Router works
+    @app.get("/", include_in_schema=False)
+    @app.get("/{full_path:path}", include_in_schema=False)
+    async def serve_spa(full_path: str = ""):
         return FileResponse(os.path.join(_DIST, "index.html"))
 
 
