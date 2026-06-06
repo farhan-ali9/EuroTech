@@ -9,10 +9,19 @@
 #
 set -euo pipefail
 
-VPS="${VPS:-root@<VPS_IP>}"
-APP_DIR="${APP_DIR:-/opt/bumpless}"
 HERE="$(cd "$(dirname "$0")" && pwd)"
 LOCAL_DIR="$HERE/road-sentinel-hk"
+
+# Local, gitignored deploy config — e.g. VPS=root@your-ip  (see .deploy.env.example)
+[ -f "$HERE/.deploy.env" ] && . "$HERE/.deploy.env"
+
+VPS="${VPS:-}"
+APP_DIR="${APP_DIR:-/opt/bumpless}"
+if [ -z "$VPS" ]; then
+  echo "ERROR: VPS not set. Put 'VPS=root@your-ip' in .deploy.env (see .deploy.env.example)," >&2
+  echo "       or run:  VPS=root@your-ip ./deploy.sh" >&2
+  exit 1
+fi
 
 # Mapbox token for the production build (read from the local frontend/.env).
 TOKEN="${VITE_MAPBOX_TOKEN:-$(grep -E '^VITE_MAPBOX_TOKEN=' "$LOCAL_DIR/frontend/.env" 2>/dev/null | cut -d= -f2- || true)}"

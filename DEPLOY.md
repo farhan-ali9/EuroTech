@@ -19,7 +19,11 @@ Deploy is a local script that rsyncs the app to the VPS and rebuilds the stack.
    (the deploy script reads it and bakes it into the production build).
 
 ## Deploy
-From the repo root:
+Set your VPS once in a local **`.deploy.env`** (gitignored — copy from `.deploy.env.example`):
+```bash
+echo 'VPS=root@<VPS_IP>' > .deploy.env
+```
+Then, from the repo root:
 ```bash
 ./deploy.sh
 ```
