@@ -9,7 +9,6 @@ import { haversineMeters } from "../services/geo";
 
 const WARN_RANGE_M = 150; // start warning when a defect is this close
 const NEARBY_REFRESH_MS = 15000; // re-fetch the local defect set this often
-const SEG_COUNT = 6; // proximity bars (wifi signal-strength style)
 
 const BRAND = "#2C5364"; // app theme color
 const PAGE_BG = "linear-gradient(180deg,#f5f8f9 0%,#e6eef0 100%)";
@@ -207,7 +206,6 @@ function Warning({ warning, color, close, gps }) {
   const s = sev(warning.defect.severity);
   const dist = Math.round(warning.distance);
   const fill = Math.max(0, Math.min(1, 1 - warning.distance / WARN_RANGE_M));
-  const filled = Math.round(fill * SEG_COUNT);
   const speed = gps?.speed_kmh ?? 0;
   const secs = speed > 1 ? Math.round(warning.distance / (speed / 3.6)) : null;
 
@@ -241,21 +239,37 @@ function Warning({ warning, color, close, gps }) {
       </div>
       {secs != null && <div style={{ fontSize: 13, color: "#90a4ac", marginTop: 2 }}>~{secs}s away</div>}
 
-      <div style={styles.segRow}>
-        {Array.from({ length: SEG_COUNT }).map((_, i) => (
-          <div
-            key={i}
-            style={{
-              width: 16,
-              height: 14 + i * 10,
-              borderRadius: 4,
-              background: i < filled ? color : "rgba(20,40,48,0.10)",
-              transition: "background 0.2s, height 0.2s",
-            }}
-          />
-        ))}
+      <div style={{ marginTop: 28, display: "flex", justifyContent: "center" }}>
+        <ProximitySignal color={color} fill={fill} />
       </div>
     </div>
+  );
+}
+
+// WiFi-style proximity glyph: a dot with concentric arcs that light up
+// (inner → outer) as you close in on the defect.
+function ProximitySignal({ color, fill }) {
+  const litArcs = Math.round(Math.max(0, Math.min(1, fill)) * 3); // 0..3 arcs
+  const dim = "rgba(20,40,48,0.12)";
+  const arcs = [
+    "M39.4 51.4 A15 15 0 0 1 60.6 51.4",
+    "M30.2 42.2 A28 28 0 0 1 69.8 42.2",
+    "M21 33 A41 41 0 0 1 79 33",
+  ];
+  return (
+    <svg width="118" height="85" viewBox="0 0 100 72" fill="none">
+      {arcs.map((d, i) => (
+        <path
+          key={i}
+          d={d}
+          stroke={i < litArcs ? color : dim}
+          strokeWidth="7"
+          strokeLinecap="round"
+          style={{ transition: "stroke 0.2s" }}
+        />
+      ))}
+      <circle cx="50" cy="62" r="6" fill={color} />
+    </svg>
   );
 }
 
@@ -341,7 +355,6 @@ const styles = {
     boxShadow: "0 10px 30px rgba(20,40,48,0.18)",
     fontVariantNumeric: "tabular-nums",
   },
-  segRow: { display: "flex", justifyContent: "center", alignItems: "flex-end", gap: 8, marginTop: 26, height: 70 },
   radar: {
     position: "relative",
     width: 128,
