@@ -44,7 +44,7 @@ function popupHTML(h) {
       </div>
       <div style="font-size:12px;color:#334155">Reported <b>${h.report_count}×</b></div>
       ${when ? `<div style="font-size:11px;color:#94a3b8;margin-top:3px">Last seen ${when}</div>` : ""}
-      <div style="margin-top:8px;text-align:right">
+      <div style="margin-top:8px;text-align:left">
         <span data-bl-resolve="${h.id}" class="bl-resolve">resolve</span>
       </div>
     </div>`;
