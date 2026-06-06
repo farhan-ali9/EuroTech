@@ -29,14 +29,7 @@ def analyse_frame(frame_b64: str) -> Optional[VisionEvent]:
         road_region = img[int(h * 0.40): int(h * 0.95), :]
 
         pothole = _detect_pothole(road_region)
-        water   = _detect_standing_water(road_region)
-        crack   = _detect_crack(road_region)
-
-        candidates = [e for e in [pothole, water, crack] if e is not None]
-        if not candidates:
-            return None
-
-        return max(candidates, key=lambda e: e.confidence)
+        return pothole
 
     except Exception:
         return None

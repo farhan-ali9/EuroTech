@@ -4,19 +4,11 @@ from .sound import SoundEvent
 from .vision import VisionEvent
 
 HAZARD_COLORS = {
-    "pothole":    "#ef4444",
-    "slippery":   "#f97316",
-    "wet_road":   "#3b82f6",
-    "rough_road": "#eab308",
-    "bump":       "#8b5cf6",
+    "pothole": "#ef4444",
 }
 
 SPEED_RECOMMENDATIONS = {
-    "pothole":    {"low": 30, "medium": 20, "high": 10},
-    "slippery":   {"low": 40, "medium": 25, "high": 15},
-    "wet_road":   {"low": 50, "medium": 35, "high": 20},
-    "rough_road": {"low": 40, "medium": 30, "high": 20},
-    "bump":       {"low": 20, "medium": 15, "high": 10},
+    "pothole": {"low": 30, "medium": 20, "high": 10},
 }
 
 def fuse_signals(
