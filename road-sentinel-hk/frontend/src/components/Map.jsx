@@ -26,6 +26,11 @@ const HK_BOUNDS = [
 const clampSev = (s) => Math.max(1, Math.min(5, Math.round(s || 1)));
 export const sevColor = (s) => SEVERITY_COLORS[clampSev(s)];
 
+const IS_TOUCH =
+  typeof window !== "undefined" &&
+  window.matchMedia &&
+  window.matchMedia("(pointer: coarse)").matches;
+
 function popupHTML(h) {
   const sev = clampSev(h.severity);
   const when = h.last_reported ? new Date(h.last_reported).toLocaleString() : "";
@@ -148,27 +153,31 @@ export default function Map({ hazards = [], bounds = HK_BOUNDS, onResolve, onAdd
         0 4px 12px rgba(0,0,0,.5);${sev >= 5 ? "animation:pulse 1.5s infinite;" : ""}`;
       el.textContent = sev;
 
-      const popup = new mapboxgl.Popup({ offset: 16, closeButton: false }).setHTML(popupHTML(h));
+      // Touch: tap-to-toggle (popup stays open, with a close button) — avoids the
+      // hover/tap conflict that made "resolve" need a double-tap. Desktop: hover.
+      const popup = new mapboxgl.Popup({ offset: 16, closeButton: IS_TOUCH }).setHTML(popupHTML(h));
       const marker = new mapboxgl.Marker({ element: el })
         .setLngLat([h.lng, h.lat])
-        .setPopup(popup)
+        .setPopup(popup) // clicking/tapping the marker toggles the popup
         .addTo(map);
 
-      // Hover shows the popup; a short close delay lets you move into it (to click "resolve").
-      el.addEventListener("mouseenter", () => {
-        clearTimeout(hoverTimer.current);
-        popup.addTo(map);
-        const pe = popup.getElement();
-        if (pe) {
-          pe.addEventListener("mouseenter", () => clearTimeout(hoverTimer.current));
-          pe.addEventListener("mouseleave", () => {
-            hoverTimer.current = setTimeout(() => popup.remove(), 200);
-          });
-        }
-      });
-      el.addEventListener("mouseleave", () => {
-        hoverTimer.current = setTimeout(() => popup.remove(), 250);
-      });
+      if (!IS_TOUCH) {
+        // Desktop: open on hover, with a short close delay so you can move into it.
+        el.addEventListener("mouseenter", () => {
+          clearTimeout(hoverTimer.current);
+          popup.addTo(map);
+          const pe = popup.getElement();
+          if (pe) {
+            pe.addEventListener("mouseenter", () => clearTimeout(hoverTimer.current));
+            pe.addEventListener("mouseleave", () => {
+              hoverTimer.current = setTimeout(() => popup.remove(), 200);
+            });
+          }
+        });
+        el.addEventListener("mouseleave", () => {
+          hoverTimer.current = setTimeout(() => popup.remove(), 250);
+        });
+      }
       markersRef.current.push(marker);
     });
   }, [hazards, loaded]);
