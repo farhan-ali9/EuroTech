@@ -5,26 +5,9 @@ import mapboxgl from "mapbox-gl";
 // Create a .env file with VITE_MAPBOX_TOKEN=pk.your_public_token and do not commit it.
 mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_TOKEN || "YOUR_MAPBOX_PUBLIC_TOKEN";
 
-const TYPE_COLORS = {
-  pothole:    "#ff3b4a",
-  slippery:   "#ff8c42",
-  wet_road:   "#00d9ff",
-  rough_road: "#ffc600",
-  bump:       "#2dd4bf",
-};
+const TYPE_COLORS = { pothole: "#ef4444" };
+const TYPE_ICONS  = { pothole: "🕳️" };
 
-const TYPE_ICONS = {
-  pothole:    "🕳️",
-  slippery:   "🌊",
-  wet_road:   "💧",
-  rough_road: "⚡",
-  bump:       "🔺",
-};
-
-const HONG_KONG_BOUNDS = [
-  [113.80, 22.15], // south-west
-  [114.40, 22.55], // north-east
-];
 
 export default function Map({ hazards, userLocation, onHazardClick }) {
   const containerRef  = useRef(null);
@@ -39,15 +22,13 @@ export default function Map({ hazards, userLocation, onHazardClick }) {
     const map = new mapboxgl.Map({
       container:  containerRef.current,
       style:      "mapbox://styles/mapbox/dark-v11",
-      center:     [114.1095, 22.3600],
-      zoom:       10,
+      center:     [10.4515, 51.1657],
+      zoom:       6,
       pitch:      45,
       bearing:    -10,
       antialias:  true,
     });
 
-    // Fit to show the FULL Hong Kong territory on load
-    map.fitBounds(HONG_KONG_BOUNDS, { padding: 20, duration: 0 });
 
     map.addControl(new mapboxgl.NavigationControl(), "top-left");
     map.addControl(new mapboxgl.ScaleControl(),      "bottom-left");
@@ -166,55 +147,41 @@ export default function Map({ hazards, userLocation, onHazardClick }) {
       el.textContent = icon;
       el.title = `${hazard.event_type.replace("_", " ")} — severity ${hazard.severity.toFixed(1)}`;
 
-      // Popup with full details
+      const speed = hazard.severity >= 7 ? 10 : hazard.severity >= 4 ? 20 : 30;
       const popup = new mapboxgl.Popup({
         offset: 20,
         closeButton: false,
-        maxWidth: "240px",
+        maxWidth: "260px",
       }).setHTML(`
-        <div style="font-family:-apple-system,sans-serif">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
-            <span style="font-size:22px">${TYPE_ICONS[hazard.event_type] || "⚠️"}</span>
+        <div style="font-family:-apple-system,sans-serif;color:#f1f5f9;background:#1e293b;border-radius:8px;">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+            <span style="font-size:22px;">${TYPE_ICONS[hazard.event_type] || "⚠️"}</span>
             <div>
-              <div style="font-weight:800;font-size:14px;text-transform:capitalize">
+              <div style="font-weight:800;font-size:14px;text-transform:capitalize;color:#f1f5f9;">
                 ${hazard.event_type.replace("_", " ")}
               </div>
-              <div style="font-size:11px;color:#f1f5f9;margin-top:2px;font-weight:600">
-                ${hazard.road_name || ""}
-              </div>
-              <div style="font-size:10px;color:#94a3b8">
-                ${hazard.full_address ? hazard.full_address.split(",").slice(1).join(",").trim() : new Date(hazard.last_reported).toLocaleTimeString()}
+              <div style="font-size:11px;color:#94a3b8;margin-top:2px;">
+                ${hazard.road_name || (hazard.lat.toFixed(4) + ", " + hazard.lng.toFixed(4))}
               </div>
             </div>
           </div>
-
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px">
-            <div style="background:#0f172a;border-radius:6px;padding:6px;text-align:center">
-              <div style="font-size:9px;color:#64748b;font-weight:700">SEVERITY</div>
-              <div style="font-size:18px;font-weight:800;color:${color}">${hazard.severity.toFixed(1)}</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:10px;">
+            <div style="background:#0f172a;border-radius:6px;padding:6px;text-align:center;">
+              <div style="font-size:9px;color:#64748b;font-weight:700;">SEVERITY</div>
+              <div style="font-size:18px;font-weight:800;color:${color};">${hazard.severity.toFixed(1)}</div>
             </div>
-            <div style="background:#0f172a;border-radius:6px;padding:6px;text-align:center">
-              <div style="font-size:9px;color:#64748b;font-weight:700">REPORTS</div>
-              <div style="font-size:18px;font-weight:800">${hazard.report_count}</div>
+            <div style="background:#0f172a;border-radius:6px;padding:6px;text-align:center;">
+              <div style="font-size:9px;color:#64748b;font-weight:700;">REPORTS</div>
+              <div style="font-size:18px;font-weight:800;color:#f1f5f9;">${hazard.report_count}</div>
             </div>
-            <div style="background:#0f172a;border-radius:6px;padding:6px;text-align:center">
-              <div style="font-size:9px;color:#64748b;font-weight:700">CONF.</div>
-              <div style="font-size:18px;font-weight:800">${Math.round(hazard.confidence * 100)}%</div>
+            <div style="background:#0f172a;border-radius:6px;padding:6px;text-align:center;">
+              <div style="font-size:9px;color:#64748b;font-weight:700;">CONF.</div>
+              <div style="font-size:18px;font-weight:800;color:#f1f5f9;">${Math.round(hazard.confidence * 100)}%</div>
             </div>
           </div>
-
-          ${hazard.weather_multiplier > 1.2 ? `
-            <div style="background:#00d9ff15;border:1px solid #00d9ff40;color:#00d9ff;
-                        padding:5px 8px;border-radius:5px;font-size:11px;font-weight:700;margin-bottom:8px">
-              ⛈ Rain severity boost ×${hazard.weather_multiplier}
-            </div>` : ""}
-
-          <div style="background:#ff3b4a15;border:1px solid #ff3b4a30;
-                      border-radius:6px;padding:8px;text-align:center">
-            <div style="font-size:10px;color:#94a3b8">Recommended speed</div>
-            <div style="font-size:22px;font-weight:900;color:#2dd4bf">
-              ${hazard.severity >= 7 ? 10 : hazard.severity >= 4 ? 20 : 30} km/h
-            </div>
+          <div style="background:#0f172a;border-radius:6px;padding:8px;display:flex;align-items:center;justify-content:space-between;">
+            <span style="font-size:11px;color:#94a3b8;">Slow down to</span>
+            <span style="font-size:20px;font-weight:900;color:#22c55e;">${speed} km/h</span>
           </div>
         </div>
       `);
@@ -223,18 +190,13 @@ export default function Map({ hazards, userLocation, onHazardClick }) {
         .setLngLat([hazard.lng, hazard.lat])
         .addTo(map);
 
-      let leaveTimer = null;
-
       el.addEventListener("mouseenter", () => {
-        clearTimeout(leaveTimer);
         el.style.transform = "scale(1.2)";
         popup.setLngLat([hazard.lng, hazard.lat]).addTo(map);
       });
       el.addEventListener("mouseleave", () => {
-        leaveTimer = setTimeout(() => {
-          el.style.transform = "scale(1)";
-          popup.remove();
-        }, 200);
+        el.style.transform = "scale(1)";
+        popup.remove();
       });
       el.addEventListener("click", () => onHazardClick?.(hazard));
 

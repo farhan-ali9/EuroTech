@@ -34,6 +34,16 @@ export async function fetchGovernmentAlerts() {
   return res.json();
 }
 
+export async function resolveHazard(id) {
+  const res = await fetch(`/hazards/${id}/resolve`, { method: "POST" });
+  return res.json();
+}
+
+export async function reportHazardToGovernment(id) {
+  const res = await fetch(`/hazards/${id}/report-government`, { method: "POST" });
+  return res.json();
+}
+
 export function createWebSocket(onMessage) {
   const ws = new WebSocket(`${WS_BASE}/ws`);
 

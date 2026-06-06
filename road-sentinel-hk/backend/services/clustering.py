@@ -12,33 +12,39 @@ GOVT_SEVERITY_THRESHOLD = 5.0
 
 
 def _get_district(lat: float, lng: float) -> str:
-    if lng < 114.05:
-        return "Lantau Island"
-    # HK Island — south of harbour
-    if lat < 22.30:
-        if lng < 114.13:
-            return "Kennedy Town"
-        elif lng < 114.17:
-            return "Wan Chai"
-        else:
-            return "Eastern District"
-    # Kowloon Peninsula
-    if lat < 22.34:
-        if lng < 114.16:
-            return "Sham Shui Po"
-        elif lng < 114.19:
-            return "Kowloon City"
-        else:
-            return "Wong Tai Sin"
-    # New Territories
-    if lat < 22.42:
-        if lng < 114.10:
-            return "Tsuen Wan"
-        elif lng < 114.22:
-            return "Sha Tin"
-        else:
-            return "Sai Kung"
-    return "North New Territories"
+    if lat > 54.0:
+        return "Schleswig-Holstein"
+    if lat > 53.4 and 9.7 < lng < 10.4:
+        return "Hamburg"
+    if lat > 53.0 and lng < 9.1:
+        return "Bremen"
+    if lat > 53.0 and lng > 11.5:
+        return "Mecklenburg-Vorpommern"
+    if 52.3 < lat < 52.7 and 13.1 < lng < 13.8:
+        return "Berlin"
+    if lat > 51.3 and lng < 11.7:
+        return "Niedersachsen"
+    if lat > 51.3 and lng > 11.7:
+        return "Brandenburg"
+    if 51.0 < lat < 53.1 and 10.6 < lng < 13.2:
+        return "Sachsen-Anhalt"
+    if lat > 50.3 and lng < 9.5:
+        return "Nordrhein-Westfalen"
+    if lat > 50.2 and lng > 11.9:
+        return "Sachsen"
+    if 50.2 < lat < 51.7 and 9.9 < lng < 12.7:
+        return "Thüringen"
+    if 50.0 < lat < 51.7 and 7.8 < lng < 10.3:
+        return "Hessen"
+    if 49.1 < lat < 50.9 and lng < 8.5:
+        return "Rheinland-Pfalz"
+    if lat < 49.7 and lng < 7.4:
+        return "Saarland"
+    if lat < 49.8 and lng < 10.5:
+        return "Baden-Württemberg"
+    if lat < 50.6:
+        return "Bayern"
+    return "Germany"
 
 def haversine_m(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
     R = 6371000
@@ -188,6 +194,23 @@ class ClusteringService:
             h for h in confirmed
             if haversine_m(lat, lng, h["lat"], h["lng"]) <= radius_m
         ]
+
+    def resolve_hazard(self, hid: str) -> bool:
+        if hid not in self._hazards:
+            return False
+        del self._hazards[hid]
+        db.delete_hazard(hid)
+        return True
+
+    def mark_government_reported(self, hid: str) -> bool:
+        if hid not in self._hazards:
+            return False
+        h = self._hazards[hid]
+        h["government_reported"] = True
+        h["reported_at"] = datetime.utcnow().isoformat()
+        if not h.get("source"):
+            db.save_hazard(h)
+        return True
 
     def stats(self) -> dict:
         confirmed = self.get_confirmed_hazards()
