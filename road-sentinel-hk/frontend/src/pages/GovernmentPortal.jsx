@@ -1,8 +1,8 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useCallback } from "react";
 import { Link } from "react-router-dom";
 import Map, { SEVERITY_COLORS, SEVERITY_LABELS } from "../components/Map";
 import { Mark } from "../components/Logo";
-import { fetchHazards } from "../services/api";
+import { fetchHazards, sendReport, deleteHazard } from "../services/api";
 
 const POLL_MS = 10000;
 
@@ -20,19 +20,41 @@ export default function GovMap() {
   const [updated, setUpdated] = useState(null);
   const [region, setRegion] = useState("hk");
 
-  useEffect(() => {
-    let timer;
-    const load = async () => {
-      try {
-        const data = await fetchHazards();
-        setHazards(data.hazards || []);
-        setUpdated(new Date());
-      } catch {}
-    };
-    load();
-    timer = setInterval(load, POLL_MS);
-    return () => clearInterval(timer);
+  const refresh = useCallback(async () => {
+    try {
+      const data = await fetchHazards();
+      setHazards(data.hazards || []);
+      setUpdated(new Date());
+    } catch {}
   }, []);
+
+  useEffect(() => {
+    refresh();
+    const timer = setInterval(refresh, POLL_MS);
+    return () => clearInterval(timer);
+  }, [refresh]);
+
+  // Demo/debug: resolve (delete) a defect, and add one by double-clicking the map.
+  const handleResolve = useCallback(
+    async (id) => {
+      setHazards((prev) => prev.filter((h) => h.id !== id)); // optimistic
+      try {
+        await deleteHazard(id);
+      } catch {}
+      refresh();
+    },
+    [refresh]
+  );
+
+  const handleAdd = useCallback(
+    async ({ lat, lng }, severity) => {
+      try {
+        await sendReport({ lat, lng, severity });
+      } catch {}
+      refresh();
+    },
+    [refresh]
+  );
 
   const regionHazards = useMemo(
     () => hazards.filter((h) => inBounds(h, REGIONS[region].bounds)),
@@ -46,7 +68,12 @@ export default function GovMap() {
 
   return (
     <div style={{ position: "absolute", inset: 0 }}>
-      <Map hazards={regionHazards} bounds={REGIONS[region].bounds} />
+      <Map
+        hazards={regionHazards}
+        bounds={REGIONS[region].bounds}
+        onResolve={handleResolve}
+        onAddDefect={handleAdd}
+      />
 
       {/* Header overlay */}
       <div style={styles.header}>

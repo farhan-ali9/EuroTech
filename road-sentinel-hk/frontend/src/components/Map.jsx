@@ -44,15 +44,44 @@ function popupHTML(h) {
       </div>
       <div style="font-size:12px;color:#334155">Reported <b>${h.report_count}×</b></div>
       ${when ? `<div style="font-size:11px;color:#94a3b8;margin-top:3px">Last seen ${when}</div>` : ""}
+      <div style="margin-top:8px;text-align:right">
+        <span data-bl-resolve="${h.id}" style="font-size:10px;color:#cbd5e1;cursor:pointer;text-decoration:underline">resolve</span>
+      </div>
     </div>`;
 }
 
-export default function Map({ hazards = [], bounds = HK_BOUNDS }) {
+// Double-click picker to add a defect (demo/debug).
+function addPopupHTML() {
+  const btns = [1, 2, 3, 4, 5]
+    .map(
+      (s) =>
+        `<button data-bl-add="${s}" style="width:30px;height:30px;border:none;border-radius:6px;
+          background:${SEVERITY_COLORS[s]};color:#0a0f1f;font-weight:800;cursor:pointer">${s}</button>`
+    )
+    .join("");
+  return `
+    <div style="font-family:-apple-system,system-ui,sans-serif;text-align:center">
+      <div style="font-size:11px;color:#475569;font-weight:700;margin-bottom:6px">Add defect — severity</div>
+      <div style="display:flex;gap:5px">${btns}</div>
+    </div>`;
+}
+
+export default function Map({ hazards = [], bounds = HK_BOUNDS, onResolve, onAddDefect }) {
   const containerRef = useRef(null);
   const mapRef = useRef(null);
   const markersRef = useRef([]);
   const userMarkerRef = useRef(null);
+  const addPopupRef = useRef(null);
+  const hoverTimer = useRef(null);
+  const onResolveRef = useRef(onResolve);
+  const onAddRef = useRef(onAddDefect);
   const [loaded, setLoaded] = useState(false);
+
+  // Keep latest callbacks available to the once-registered listeners.
+  useEffect(() => {
+    onResolveRef.current = onResolve;
+    onAddRef.current = onAddDefect;
+  }, [onResolve, onAddDefect]);
 
   useEffect(() => {
     const map = new mapboxgl.Map({
@@ -62,9 +91,39 @@ export default function Map({ hazards = [], bounds = HK_BOUNDS }) {
       fitBoundsOptions: { padding: 60 },
     });
     map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), "bottom-right");
+    map.doubleClickZoom.disable(); // double-click is used to add a defect (demo)
     map.on("load", () => setLoaded(true));
+
+    // Double-click → severity picker to add a defect.
+    map.on("dblclick", (e) => {
+      if (!addPopupRef.current) {
+        addPopupRef.current = new mapboxgl.Popup({ offset: 12, closeButton: true });
+      }
+      addPopupRef.current.setLngLat(e.lngLat).setHTML(addPopupHTML()).addTo(map);
+    });
+
+    // One delegated click handler for the in-popup resolve / add buttons.
+    const onClick = (e) => {
+      const res = e.target.closest && e.target.closest("[data-bl-resolve]");
+      if (res) {
+        onResolveRef.current?.(res.getAttribute("data-bl-resolve"));
+        markersRef.current.forEach((m) => m.getPopup()?.remove());
+        return;
+      }
+      const add = e.target.closest && e.target.closest("[data-bl-add]");
+      if (add) {
+        const ll = addPopupRef.current?.getLngLat();
+        if (ll) onAddRef.current?.({ lat: ll.lat, lng: ll.lng }, Number(add.getAttribute("data-bl-add")));
+        addPopupRef.current?.remove();
+      }
+    };
+    containerRef.current.addEventListener("click", onClick);
+
     mapRef.current = map;
-    return () => map.remove();
+    return () => {
+      containerRef.current?.removeEventListener("click", onClick);
+      map.remove();
+    };
   }, []);
 
   useEffect(() => {
@@ -95,8 +154,21 @@ export default function Map({ hazards = [], bounds = HK_BOUNDS }) {
         .setPopup(popup)
         .addTo(map);
 
-      el.addEventListener("mouseenter", () => marker.getPopup().addTo(map));
-      el.addEventListener("mouseleave", () => marker.getPopup().remove());
+      // Hover shows the popup; a short close delay lets you move into it (to click "resolve").
+      el.addEventListener("mouseenter", () => {
+        clearTimeout(hoverTimer.current);
+        popup.addTo(map);
+        const pe = popup.getElement();
+        if (pe) {
+          pe.addEventListener("mouseenter", () => clearTimeout(hoverTimer.current));
+          pe.addEventListener("mouseleave", () => {
+            hoverTimer.current = setTimeout(() => popup.remove(), 200);
+          });
+        }
+      });
+      el.addEventListener("mouseleave", () => {
+        hoverTimer.current = setTimeout(() => popup.remove(), 250);
+      });
       markersRef.current.push(marker);
     });
   }, [hazards, loaded]);

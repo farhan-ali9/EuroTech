@@ -20,3 +20,9 @@ export async function fetchNearby(lat, lng, radius = 1000) {
   const res = await fetch(`/hazards/nearby?lat=${lat}&lng=${lng}&radius=${radius}`);
   return res.json();
 }
+
+// Demo/debug: remove a defect.
+export async function deleteHazard(id) {
+  const res = await fetch(`/hazards/${id}`, { method: "DELETE" });
+  return res.json();
+}

@@ -99,3 +99,8 @@ def delete_expired(cutoff_iso: str) -> None:
 def clear_all() -> None:
     with _pool.connection() as con:
         con.execute("DELETE FROM defects")
+
+
+def delete_defect(did: str) -> None:
+    with _pool.connection() as con:
+        con.execute("DELETE FROM defects WHERE id = %s", (did,))

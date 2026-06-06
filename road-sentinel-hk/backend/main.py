@@ -81,6 +81,13 @@ async def hazards_nearby(lat: float, lng: float, radius: float = 1000):
     return {"hazards": found, "count": len(found), "radius_m": radius}
 
 
+@app.delete("/hazards/{defect_id}")
+async def delete_hazard(defect_id: str):
+    """Resolve/remove a defect (demo/debug)."""
+    removed = clustering.remove_defect(defect_id)
+    return {"status": "ok", "removed": removed, "id": defect_id}
+
+
 @app.get("/health")
 async def health():
     return {"status": "ok", "ts": datetime.utcnow().isoformat()}

@@ -73,6 +73,12 @@ class ClusteringService:
             self._defects[did]["road_name"] = road_name
             db.upsert_defect(self._defects[did])
 
+    def remove_defect(self, did: str) -> bool:
+        existed = did in self._defects
+        self._defects.pop(did, None)
+        db.delete_defect(did)
+        return existed
+
     def all_defects(self) -> List[dict]:
         return list(self._defects.values())
 
