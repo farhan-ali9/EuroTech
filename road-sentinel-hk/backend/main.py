@@ -13,7 +13,9 @@ from services.hko import get_current_weather
 from services.clustering import ClusteringService
 from services.geocoding import reverse_geocode
 from services import hk_incidents
+import database as db
 
+db.init_db()
 clustering = ClusteringService()
 _weather_cache = {"data": None, "last_fetch": None}
 _ws_clients: list[WebSocket] = []
