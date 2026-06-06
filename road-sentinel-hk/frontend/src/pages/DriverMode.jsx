@@ -127,17 +127,9 @@ export default function DriverView() {
   useEffect(() => () => stopAll(), [stopAll]);
 
   const close = warning && warning.distance < 80;
-  const warnColor = warning ? SEVERITY_COLORS[sev(warning.defect.severity)] : BRAND;
 
   return (
-    <div
-      style={{
-        ...styles.page,
-        background: close
-          ? `radial-gradient(circle at 50% 40%, ${warnColor}26, #eef3f5 72%)`
-          : PAGE_BG,
-      }}
-    >
+    <div style={{ ...styles.page, background: PAGE_BG }}>
       {flash && <Flash severity={sev(flash)} />}
 
       {/* top bar */}
@@ -165,7 +157,7 @@ export default function DriverView() {
         {!active ? (
           <Idle />
         ) : warning ? (
-          <Warning warning={warning} color={warnColor} close={close} gps={gps} />
+          <Warning warning={warning} close={close} gps={gps} />
         ) : (
           <Monitoring gps={gps} logged={logged} nearbyCount={nearby.current.length} />
         )}
@@ -232,7 +224,7 @@ function Monitoring({ gps, logged, nearbyCount }) {
   );
 }
 
-function Warning({ warning, color, close, gps }) {
+function Warning({ warning, close, gps }) {
   const s = sev(warning.defect.severity);
   const dist = Math.round(warning.distance);
   const fill = Math.max(0, Math.min(1, 1 - warning.distance / WARN_RANGE_M));
@@ -241,18 +233,18 @@ function Warning({ warning, color, close, gps }) {
 
   return (
     <div style={{ textAlign: "center", width: "100%", maxWidth: 440, padding: "0 22px" }}>
-      <div style={{ fontSize: 13, fontWeight: 800, letterSpacing: 1.5, color }}>
+      <div style={{ fontSize: 13, fontWeight: 800, letterSpacing: 1.5, color: close ? "#dc2626" : "#64748b" }}>
         {close ? "DEFECT IMMINENT" : "DEFECT AHEAD"}
       </div>
 
-      {/* radar-style proximity signal — the main element */}
-      <div style={{ marginTop: 8, display: "flex", justifyContent: "center" }}>
-        <ProximitySignal color={color} fill={fill} size={250} urgent={close} />
+      {/* proximity signal fan — the main element */}
+      <div style={{ marginTop: 10, display: "flex", justifyContent: "center" }}>
+        <ProximitySignal fill={fill} size={220} />
       </div>
 
       {/* distance to the defect */}
-      <div style={{ marginTop: 2 }}>
-        <span style={{ fontSize: 64, fontWeight: 800, lineHeight: 1, color: "#152830", fontVariantNumeric: "tabular-nums" }}>
+      <div style={{ marginTop: 4 }}>
+        <span style={{ fontSize: 60, fontWeight: 800, lineHeight: 1, color: "#152830", fontVariantNumeric: "tabular-nums" }}>
           {dist}
         </span>
         <span style={{ fontSize: 22, color: "#90a4ac", fontWeight: 600 }}> m</span>
@@ -260,8 +252,8 @@ function Warning({ warning, color, close, gps }) {
       {secs != null && <div style={{ fontSize: 13, color: "#90a4ac", marginTop: 2 }}>~{secs}s away</div>}
 
       {/* severity (secondary) */}
-      <div style={{ marginTop: 18, display: "inline-flex", alignItems: "center", gap: 8 }}>
-        <span style={{ width: 12, height: 12, borderRadius: "50%", background: color }} />
+      <div style={{ marginTop: 16, display: "inline-flex", alignItems: "center", gap: 8 }}>
+        <span style={{ width: 11, height: 11, borderRadius: "50%", background: SEVERITY_COLORS[s] }} />
         <span style={{ fontSize: 14, fontWeight: 700, color: "#152830" }}>
           Severity {s}/5 · {SEVERITY_LABELS[s]}
         </span>
@@ -273,37 +265,32 @@ function Warning({ warning, color, close, gps }) {
   );
 }
 
-// Radar-style proximity glyph: a dot with concentric arcs that light up and pulse
-// outward (inner → outer) as you close in — louder/faster when imminent.
-function ProximitySignal({ color, fill, size = 250, urgent = false }) {
-  const litArcs = Math.round(Math.max(0, Math.min(1, fill)) * 3); // 0..3 arcs
-  const dim = "rgba(20,40,48,0.09)";
+// Proximity signal: a fan of thick, squared bars that light up bottom→top as you
+// close in. Colours escalate green → orange → red. No animation.
+const BAR_COLORS = ["#22c55e", "#16a34a", "#f97316", "#ea580c", "#ef4444", "#991b1b"];
+function ProximitySignal({ fill, size = 240 }) {
+  const lit = Math.max(0, Math.min(BAR_COLORS.length, Math.ceil(fill * BAR_COLORS.length)));
+  const dim = "rgba(20,40,48,0.10)";
   const arcs = [
-    "M39.4 51.4 A15 15 0 0 1 60.6 51.4",
-    "M30.2 42.2 A28 28 0 0 1 69.8 42.2",
-    "M21 33 A41 41 0 0 1 79 33",
+    "M41.8 73.2 A12 12 0 0 1 58.2 73.2",
+    "M34.3 65.2 A23 23 0 0 1 65.7 65.2",
+    "M26.8 57.1 A34 34 0 0 1 73.2 57.1",
+    "M19.3 49.1 A45 45 0 0 1 80.7 49.1",
+    "M11.8 41.1 A56 56 0 0 1 88.2 41.1",
+    "M4.3 33 A67 67 0 0 1 95.7 33",
   ];
-  const dur = urgent ? 1.0 : 1.8;
   return (
-    <svg width={size} height={size * 0.72} viewBox="0 0 100 72" fill="none">
-      {arcs.map((d, i) => {
-        const lit = i < litArcs;
-        return (
-          <path
-            key={i}
-            d={d}
-            stroke={lit ? color : dim}
-            strokeWidth="5"
-            strokeLinecap="round"
-            style={
-              lit
-                ? { animation: `wifiPulse ${dur}s ${i * 0.22}s ease-in-out infinite` }
-                : { transition: "stroke 0.2s" }
-            }
-          />
-        );
-      })}
-      <circle cx="50" cy="62" r="5.5" fill={color} />
+    <svg width={size} height={size * 0.9} viewBox="0 0 100 90" fill="none">
+      {arcs.map((d, i) => (
+        <path
+          key={i}
+          d={d}
+          stroke={i < lit ? BAR_COLORS[i] : dim}
+          strokeWidth="8"
+          strokeLinecap="butt"
+          style={{ transition: "stroke 0.2s" }}
+        />
+      ))}
     </svg>
   );
 }
