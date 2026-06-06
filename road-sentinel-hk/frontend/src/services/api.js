@@ -1,15 +1,12 @@
-// All requests go through the Vite proxy → backend on :8000
-// Using relative paths means HTTPS (frontend) proxies to HTTP (backend) server-side
-// so the phone only needs to trust ONE cert (the Vite self-signed cert).
+// All requests use relative paths → the Vite dev-server proxy forwards them to the
+// backend on :8000 (see vite.config.js). Keeps everything same-origin, so the phone
+// only needs ONE URL and no hardcoded backend IP.
 
-const WS_PROTOCOL = window.location.protocol === "https:" ? "wss" : "ws";
-const WS_BASE = `${WS_PROTOCOL}://${window.location.host}`;
-
-export async function sendReport(payload) {
+export async function sendReport({ lat, lng, severity }) {
   const res = await fetch("/report", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
+    body: JSON.stringify({ lat, lng, severity }),
   });
   return res.json();
 }
@@ -19,35 +16,7 @@ export async function fetchHazards() {
   return res.json();
 }
 
-export async function fetchNearby(lat, lng, radius = 300) {
+export async function fetchNearby(lat, lng, radius = 1000) {
   const res = await fetch(`/hazards/nearby?lat=${lat}&lng=${lng}&radius=${radius}`);
   return res.json();
-}
-
-export async function fetchWeather() {
-  const res = await fetch("/weather");
-  return res.json();
-}
-
-export async function fetchGovernmentAlerts() {
-  const res = await fetch("/government/alerts");
-  return res.json();
-}
-
-export function createWebSocket(onMessage) {
-  const ws = new WebSocket(`${WS_BASE}/ws`);
-
-  ws.onmessage = (e) => {
-    try {
-      onMessage(JSON.parse(e.data));
-    } catch {}
-  };
-
-  ws.onerror = (e) => console.error("WS error", e);
-
-  ws.onclose = () => {
-    setTimeout(() => createWebSocket(onMessage), 3000);
-  };
-
-  return ws;
 }
