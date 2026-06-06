@@ -18,11 +18,9 @@ const SEVERITY_COLORS = { 1: "#22c55e", 2: "#84cc16", 3: "#eab308", 4: "#f97316"
 const SEVERITY_LABELS = { 1: "Minor", 2: "Low", 3: "Moderate", 4: "High", 5: "Severe" };
 const sev = (s) => Math.max(1, Math.min(5, Math.round(s || 1)));
 
-const joltOf = (r) => {
-  if (!r) return 0;
-  const m = Math.sqrt((r.lx || 0) ** 2 + (r.ly || 0) ** 2 + (r.lz || 0) ** 2);
-  return m < 0.3 ? Math.max(0, Math.abs(r.z || 0) - 9.81) : m;
-};
+// Absolute acceleration strength |a| = sqrt(lx² + ly² + lz²) (gravity removed).
+const joltOf = (r) =>
+  r ? Math.sqrt((r.lx || 0) ** 2 + (r.ly || 0) ** 2 + (r.lz || 0) ** 2) : 0;
 
 export default function DriverView() {
   const [active, setActive] = useState(false);
@@ -89,7 +87,7 @@ export default function DriverView() {
     stopAccel.current = source.start(
       (reading) => {
         latestAccel.current = reading;
-        detector.current?.feed(reading, latestGps.current?.speed_kmh ?? 0);
+        detector.current?.feed(reading);
       },
       (err) => setError(`Motion: ${err}`)
     );
@@ -268,9 +266,9 @@ function Warning({ warning, close, gps }) {
 // Proximity signal: a fan of thick, squared bars that light up bottom→top as you
 // close in. Colours escalate green → orange → red. No animation.
 const BAR_COLORS = ["#22c55e", "#16a34a", "#f97316", "#ea580c", "#ef4444", "#991b1b"];
-function ProximitySignal({ fill, size = 240 }) {
+function ProximitySignal({ fill, size = 220 }) {
   const lit = Math.max(0, Math.min(BAR_COLORS.length, Math.ceil(fill * BAR_COLORS.length)));
-  const dim = "rgba(20,40,48,0.10)";
+  const dim = "rgba(20,40,48,0.07)";
   const arcs = [
     "M41.8 73.2 A12 12 0 0 1 58.2 73.2",
     "M34.3 65.2 A23 23 0 0 1 65.7 65.2",
@@ -286,9 +284,12 @@ function ProximitySignal({ fill, size = 240 }) {
           key={i}
           d={d}
           stroke={i < lit ? BAR_COLORS[i] : dim}
-          strokeWidth="8"
-          strokeLinecap="butt"
-          style={{ transition: "stroke 0.2s" }}
+          strokeWidth="7.5"
+          strokeLinecap="round"
+          style={{
+            transition: "stroke 0.35s ease",
+            animation: `fanIn 0.45s ${i * 0.06}s ease-out both`,
+          }}
         />
       ))}
     </svg>

@@ -1,42 +1,41 @@
-// Bump detector — turns the live accelerometer stream into discrete defect events.
-// Runs entirely on the device; only the resulting {severity} (+ GPS) is sent to the backend.
+// Bump detector — DEMO version.
+//
+// Severity is derived from ONE thing only: the absolute strength of the
+// acceleration the phone feels, i.e. the magnitude of the (gravity-removed)
+// acceleration vector:  |a| = sqrt(lx² + ly² + lz²).
+// Everything else (speed gating, vertical-axis isolation, windowed peaks,
+// per-vehicle calibration, corroboration) is intentionally ignored here so the
+// demo is trivial to reason about and you can test it just by shaking the phone.
+// See the README ("Bump detection") for how this should work in production.
 
-const MIN_JOLT = 2.0; // m/s² — below this is normal road noise
-const MIN_SPEED_KMH = 8; // ignore phone handling while parked / walking
-const COOLDOWN_MS = 2500; // one pothole = one event
+const MIN_STRENGTH = 2.5; // m/s² — below this is normal handling noise
+const COOLDOWN_MS = 1500; // one bump = one event
 
-// Map jolt magnitude (m/s²) to a 1-5 severity.
-export function severityFromJolt(jolt) {
-  if (jolt < 3) return 1;
-  if (jolt < 4) return 2;
-  if (jolt < 6) return 3;
-  if (jolt < 8) return 4;
+// Map absolute acceleration strength (m/s²) to a 1-5 severity.
+export function severityFromStrength(a) {
+  if (a < 4) return 1;
+  if (a < 7) return 2;
+  if (a < 11) return 3;
+  if (a < 16) return 4;
   return 5;
 }
 
-// onDefect({ severity, jolt }) is called once per detected bump.
+// onDefect({ severity, strength }) is called once per detected bump.
 export function createDetector(onDefect) {
   let lastFire = 0;
 
   return {
-    // Feed one accelerometer reading + the current GPS speed.
-    feed(reading, speedKmh) {
-      if (speedKmh < MIN_SPEED_KMH) return;
+    feed(reading) {
+      const { lx = 0, ly = 0, lz = 0 } = reading || {};
+      const strength = Math.sqrt(lx * lx + ly * ly + lz * lz); // |a|, gravity already removed
 
-      const { lx = 0, ly = 0, lz = 0, z = 0 } = reading || {};
-
-      // Orientation-independent linear jolt; fall back to z-gravity if the
-      // device gave no linear acceleration.
-      let jolt = Math.sqrt(lx * lx + ly * ly + lz * lz);
-      if (jolt < 0.3) jolt = Math.max(0, Math.abs(z) - 9.81);
-
-      if (jolt <= MIN_JOLT) return;
+      if (strength <= MIN_STRENGTH) return;
 
       const now = Date.now();
       if (now - lastFire < COOLDOWN_MS) return;
       lastFire = now;
 
-      onDefect({ severity: severityFromJolt(jolt), jolt: Math.round(jolt * 10) / 10 });
+      onDefect({ severity: severityFromStrength(strength), strength: Math.round(strength * 10) / 10 });
     },
   };
 }

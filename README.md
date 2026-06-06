@@ -160,6 +160,30 @@ docker compose exec db psql -U bumpless -d bumpless -c "TRUNCATE defects;"
 
 ---
 
+## Bump detection
+
+**Demo (current code).** Severity is derived from a single value — the **absolute
+strength of the acceleration the phone feels**, i.e. the magnitude of the
+gravity-removed acceleration vector:
+
+```
+|a| = sqrt(lx² + ly² + lz²)     # lx, ly, lz from DeviceMotionEvent.acceleration
+```
+
+A bump fires when `|a|` exceeds a small threshold (with a short debounce so one
+pothole = one event), and `|a|` is bucketed into severity 1–5. There is **no speed
+gate and no axis isolation**, so you can test it just by shaking the phone. This is
+deliberately trivial — see `frontend/src/services/detector.js`.
+
+**How it should work (production).** Raw magnitude alone is not enough:
+- **Speed gate** — ignore readings under ~8 km/h so handling the phone while parked or walking doesn't register.
+- **Isolate the vertical axis** — use the gyroscope/orientation to project acceleration onto the road-normal (vertical) axis, so braking and cornering (horizontal forces) aren't mistaken for road defects.
+- **Windowed peak** — a pothole is a sub-100 ms spike; sample at ~100 Hz on-device and take the peak over a short sliding window instead of one instantaneous reading.
+- **Per-vehicle / per-mount calibration** — normalize thresholds for suspension stiffness and phone mounting so a "4" means the same in every car.
+- **Corroboration** — only treat a location as a real defect once several independent vehicles report a spike there (filters one-off noise like a dropped phone or a single speed bump).
+
+---
+
 ## Roadmap
 
 ### Known limitations
