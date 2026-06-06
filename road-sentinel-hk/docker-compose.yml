@@ -1,0 +1,21 @@
+services:
+  db:
+    image: postgres:16
+    container_name: bumpless_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: bumpless
+      POSTGRES_PASSWORD: bumpless
+      POSTGRES_DB: bumpless
+    ports:
+      - "5432:5432"
+    volumes:
+      - bumpless_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bumpless -d bumpless"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  bumpless_pgdata:

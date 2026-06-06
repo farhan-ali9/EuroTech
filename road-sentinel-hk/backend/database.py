@@ -1,101 +1,101 @@
-import sqlite3
-import json
+"""Postgres persistence for BumpLess defects.
+
+Runs against the Postgres container defined in ../docker-compose.yml.
+Connection is read from DATABASE_URL; the default matches the compose file so
+local development needs no configuration.
+"""
 import os
-from datetime import datetime
+import time
 
-DB_PATH = os.path.join(os.path.dirname(__file__), "hazards.db")
+from psycopg_pool import ConnectionPool
+from psycopg.rows import dict_row
 
+DATABASE_URL = os.getenv(
+    "DATABASE_URL",
+    "postgresql://bumpless:bumpless@localhost:5432/bumpless",
+)
 
-def _conn():
-    con = sqlite3.connect(DB_PATH)
-    con.row_factory = sqlite3.Row
-    return con
-
-
-def init_db():
-    with _conn() as con:
-        con.execute("""
-            CREATE TABLE IF NOT EXISTS hazards (
-                id                  TEXT PRIMARY KEY,
-                lat                 REAL NOT NULL,
-                lng                 REAL NOT NULL,
-                event_type          TEXT NOT NULL,
-                severity            REAL NOT NULL,
-                confidence          REAL NOT NULL,
-                report_count        INTEGER NOT NULL DEFAULT 1,
-                first_reported      TEXT NOT NULL,
-                last_reported       TEXT NOT NULL,
-                weather_multiplier  REAL NOT NULL DEFAULT 1.0,
-                confirmed           INTEGER NOT NULL DEFAULT 1,
-                government_reported INTEGER NOT NULL DEFAULT 0,
-                reported_at         TEXT,
-                district            TEXT,
-                road_name           TEXT,
-                full_address        TEXT
-            )
-        """)
+# open=False → we open explicitly in init_db() with a retry loop, so the backend
+# can start slightly before Postgres finishes booting.
+_pool = ConnectionPool(
+    DATABASE_URL,
+    min_size=1,
+    max_size=5,
+    open=False,
+    kwargs={"row_factory": dict_row},
+)
 
 
-def save_hazard(h: dict):
-    with _conn() as con:
-        con.execute("""
-            INSERT INTO hazards VALUES (
-                :id, :lat, :lng, :event_type, :severity, :confidence,
-                :report_count, :first_reported, :last_reported,
-                :weather_multiplier, :confirmed, :government_reported,
-                :reported_at, :district, :road_name, :full_address
-            )
-            ON CONFLICT(id) DO UPDATE SET
-                lat                 = excluded.lat,
-                lng                 = excluded.lng,
-                severity            = excluded.severity,
-                confidence          = excluded.confidence,
-                report_count        = excluded.report_count,
-                last_reported       = excluded.last_reported,
-                weather_multiplier  = excluded.weather_multiplier,
-                confirmed           = excluded.confirmed,
-                government_reported = excluded.government_reported,
-                reported_at         = excluded.reported_at,
-                district            = excluded.district,
-                road_name           = excluded.road_name,
-                full_address        = excluded.full_address
-        """, {
-            "id":                  h["id"],
-            "lat":                 h["lat"],
-            "lng":                 h["lng"],
-            "event_type":          h["event_type"],
-            "severity":            h["severity"],
-            "confidence":          h["confidence"],
-            "report_count":        h["report_count"],
-            "first_reported":      h["first_reported"],
-            "last_reported":       h["last_reported"],
-            "weather_multiplier":  h["weather_multiplier"],
-            "confirmed":           int(h["confirmed"]),
-            "government_reported": int(h.get("government_reported", False)),
-            "reported_at":         h.get("reported_at"),
-            "district":            h.get("district"),
-            "road_name":           h.get("road_name"),
-            "full_address":        h.get("full_address"),
-        })
+def init_db(retries: int = 15, delay: float = 1.5) -> None:
+    """Open the pool (waiting for Postgres) and create the defects table."""
+    last_err = None
+    for _ in range(retries):
+        try:
+            if _pool.closed:
+                _pool.open(wait=True, timeout=5)
+            with _pool.connection() as con:
+                con.execute(
+                    """
+                    CREATE TABLE IF NOT EXISTS defects (
+                        id             TEXT PRIMARY KEY,
+                        lat            DOUBLE PRECISION NOT NULL,
+                        lng            DOUBLE PRECISION NOT NULL,
+                        severity       INTEGER NOT NULL,
+                        report_count   INTEGER NOT NULL DEFAULT 1,
+                        first_reported TEXT NOT NULL,
+                        last_reported  TEXT NOT NULL,
+                        road_name      TEXT
+                    )
+                    """
+                )
+            return
+        except Exception as e:  # noqa: BLE001 — retry on any connection error
+            last_err = e
+            time.sleep(delay)
+    raise RuntimeError(f"Could not connect to Postgres at {DATABASE_URL}: {last_err}")
 
 
-def delete_hazard(hid: str):
-    with _conn() as con:
-        con.execute("DELETE FROM hazards WHERE id = ?", (hid,))
+def upsert_defect(d: dict) -> None:
+    with _pool.connection() as con:
+        con.execute(
+            """
+            INSERT INTO defects
+                (id, lat, lng, severity, report_count, first_reported, last_reported, road_name)
+            VALUES
+                (%(id)s, %(lat)s, %(lng)s, %(severity)s, %(report_count)s,
+                 %(first_reported)s, %(last_reported)s, %(road_name)s)
+            ON CONFLICT (id) DO UPDATE SET
+                lat           = EXCLUDED.lat,
+                lng           = EXCLUDED.lng,
+                severity      = EXCLUDED.severity,
+                report_count  = EXCLUDED.report_count,
+                last_reported = EXCLUDED.last_reported,
+                road_name     = EXCLUDED.road_name
+            """,
+            {
+                "id":             d["id"],
+                "lat":            d["lat"],
+                "lng":            d["lng"],
+                "severity":       int(d["severity"]),
+                "report_count":   int(d["report_count"]),
+                "first_reported": d["first_reported"],
+                "last_reported":  d["last_reported"],
+                "road_name":      d.get("road_name"),
+            },
+        )
 
 
-def delete_expired_hazards(cutoff_iso: str):
-    with _conn() as con:
-        con.execute("DELETE FROM hazards WHERE last_reported < ?", (cutoff_iso,))
+def load_all_defects() -> list[dict]:
+    with _pool.connection() as con:
+        rows = con.execute("SELECT * FROM defects").fetchall()
+    return [dict(r) for r in rows]
 
 
-def load_all_hazards() -> list[dict]:
-    with _conn() as con:
-        rows = con.execute("SELECT * FROM hazards").fetchall()
-    result = []
-    for r in rows:
-        d = dict(r)
-        d["confirmed"]           = bool(d["confirmed"])
-        d["government_reported"] = bool(d["government_reported"])
-        result.append(d)
-    return result
+def delete_expired(cutoff_iso: str) -> None:
+    with _pool.connection() as con:
+        con.execute("DELETE FROM defects WHERE last_reported < %s", (cutoff_iso,))
+
+
+def clear_all() -> None:
+    with _pool.connection() as con:
+        con.execute("DELETE FROM defects")
