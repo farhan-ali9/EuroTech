@@ -1,12 +1,12 @@
 """In-memory defect index backed by Postgres.
 
 A "defect" is a road defect with a severity 1-5. Reports within CLUSTER_RADIUS_M
-of an existing defect of are merged into it (report_count++, severity = max,
-position averaged) so the same pothole reported by many drivers stays one marker.
+of an existing defect are merged into it (report_count++, severity = max, position
+averaged) so the same pothole reported by many drivers stays one marker.
 """
 import math
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Optional, Tuple
 
 import database as db
@@ -41,7 +41,7 @@ class ClusteringService:
             if dist < CLUSTER_RADIUS_M and dist < best_dist:
                 best_id, best_dist = did, dist
 
-        now = datetime.utcnow().isoformat()
+        now = datetime.now(timezone.utc).isoformat()
 
         if best_id is not None:
             d = self._defects[best_id]

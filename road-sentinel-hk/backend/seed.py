@@ -1,15 +1,14 @@
 """Seed the database with plausible mock defects for the demo.
 
 Hong Kong: a spread across districts with varied severity & report counts.
-Munich:    a cluster around Garching (incl. the requested coordinate) + a couple
-           in the city centre.
+Munich:    a single point in Garching.
 
 Run:  uv run python seed.py     (then restart the backend so it reloads from DB)
 """
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import database as db
 
-NOW = datetime.utcnow()
+NOW = datetime.now(timezone.utc)
 
 
 def ago(hours):

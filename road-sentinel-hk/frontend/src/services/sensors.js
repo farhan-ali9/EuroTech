@@ -52,8 +52,10 @@ export function startAccelerometer(onReading, onError) {
 
 function _listenMotion(onReading) {
   _motionHandler = (e) => {
-    const ag = e.accelerationIncludingGravity; // includes gravity — for display
-    const a = e.acceleration; // linear only (gravity removed) — for detection
+    // x,y,z: acceleration including gravity; lx,ly,lz: gravity removed.
+    // The detector needs both to recover the gravity vector (= x,y,z − lx,ly,lz).
+    const ag = e.accelerationIncludingGravity;
+    const a = e.acceleration;
     if (!ag) return;
     onReading({
       x: ag.x ?? 0,
@@ -62,7 +64,6 @@ function _listenMotion(onReading) {
       lx: a?.x ?? 0,
       ly: a?.y ?? 0,
       lz: a?.z ?? 0,
-      interval: e.interval,
     });
   };
   window.addEventListener("devicemotion", _motionHandler, { passive: true });

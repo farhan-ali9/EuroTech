@@ -6,8 +6,7 @@ the map data. No raw accelerometer data is received here.
 """
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from contextlib import asynccontextmanager
-from datetime import datetime
+from datetime import datetime, timezone
 import asyncio
 
 from services.clustering import ClusteringService
@@ -17,13 +16,7 @@ import database as db
 db.init_db()
 clustering = ClusteringService()
 
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    yield
-
-
-app = FastAPI(title="BumpLess", lifespan=lifespan)
+app = FastAPI(title="BumpLess")
 
 app.add_middleware(
     CORSMiddleware,
@@ -60,8 +53,8 @@ async def report(data: dict):
 
 
 async def _enrich_road_name(defect_id: str, lat: float, lng: float):
-    geo = await reverse_geocode(lat, lng)
-    clustering.set_road_name(defect_id, geo.get("road_name"))
+    road = await reverse_geocode(lat, lng)
+    clustering.set_road_name(defect_id, road)
 
 
 @app.get("/hazards")
@@ -70,7 +63,7 @@ async def hazards():
     return {
         "hazards": clustering.all_defects(),
         "stats": clustering.stats(),
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
     }
 
 
@@ -90,7 +83,7 @@ async def delete_hazard(defect_id: str):
 
 @app.get("/health")
 async def health():
-    return {"status": "ok", "ts": datetime.utcnow().isoformat()}
+    return {"status": "ok", "ts": datetime.now(timezone.utc).isoformat()}
 
 
 @app.get("/")
@@ -99,7 +92,7 @@ async def root():
         "name": "BumpLess",
         "status": "running",
         "endpoints": ["/report", "/hazards", "/hazards/nearby", "/health", "/docs"],
-        "ts": datetime.utcnow().isoformat(),
+        "ts": datetime.now(timezone.utc).isoformat(),
     }
 
 

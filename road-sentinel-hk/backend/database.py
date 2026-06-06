@@ -91,11 +91,6 @@ def load_all_defects() -> list[dict]:
     return [dict(r) for r in rows]
 
 
-def delete_expired(cutoff_iso: str) -> None:
-    with _pool.connection() as con:
-        con.execute("DELETE FROM defects WHERE last_reported < %s", (cutoff_iso,))
-
-
 def clear_all() -> None:
     with _pool.connection() as con:
         con.execute("DELETE FROM defects")

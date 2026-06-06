@@ -34,7 +34,7 @@ export function severityFromStrength(a) {
   return 5;
 }
 
-// onDefect({ severity, strength }) is called once per detected bump.
+// onDefect({ severity }) is called once per detected bump.
 export function createDetector(onDefect) {
   let lastFire = 0;
 
@@ -48,7 +48,7 @@ export function createDetector(onDefect) {
       if (now - lastFire < COOLDOWN_MS) return;
       lastFire = now;
 
-      onDefect({ severity: severityFromStrength(strength), strength: Math.round(strength * 10) / 10 });
+      onDefect({ severity: severityFromStrength(strength) });
     },
   };
 }

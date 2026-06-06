@@ -53,6 +53,6 @@ ssh root@<VPS_IP> 'cd /opt/bumpless && docker compose -f docker-compose.prod.yml
 
 ## Notes
 - Postgres data persists in the `bumpless_pgdata` volume across deploys.
-- The self-signed CA persists in `caddy_data`, so the cert stays stable between deploys.
+- The Let's Encrypt certificate persists in `caddy_data`, so it survives redeploys (no re-issuing).
 - TLS is automatic via Let's Encrypt (the Caddyfile serves the `bump-less.club` site).
   If the cert won't issue: confirm DNS resolves to the VPS and ports 80/443 are open.
