@@ -8,16 +8,17 @@ export default function App() {
   const { pathname } = useLocation();
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100vh", background: "#0f172a", color: "#f1f5f9" }}>
+    <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh", background: "linear-gradient(180deg, #020917 0%, #08101f 100%)", color: "#f1f5f9" }}>
       <nav style={{
-        background: "#0a1120",
-        borderBottom: "1px solid #1e293b",
-        padding: "0 20px",
+        background: "rgba(2, 9, 23, 0.95)",
+        borderBottom: "1px solid rgba(148, 163, 184, 0.12)",
+        padding: "0 24px",
         display: "flex",
         alignItems: "center",
-        gap: 8,
-        height: 54,
+        gap: 10,
+        minHeight: 60,
         flexShrink: 0,
+        boxShadow: "0 18px 40px rgba(0, 0, 0, 0.18)",
       }}>
         {/* Logo */}
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginRight: 16 }}>
@@ -45,7 +46,7 @@ export default function App() {
         {/* Nav links */}
         <NavLink to="/"        active={pathname === "/"}>Command Centre</NavLink>
         <NavLink to="/drive"   active={pathname === "/drive"}>Driver Mode</NavLink>
-        <NavLink to="/gov"     active={pathname === "/gov"} highlight>
+        <NavLink to="/gov"     active={pathname === "/gov"} highlight={true}>
           Govt Alerts
         </NavLink>
 
@@ -61,7 +62,7 @@ export default function App() {
             <span style={{ fontSize: 11, color: "#22c55e", fontWeight: 700 }}>LIVE</span>
           </div>
           <div style={{ fontSize: 11, color: "#334155" }}>|</div>
-          <div style={{ fontSize: 11, color: "#64748b" }}>HKO Weather Active</div>
+          <div style={{ fontSize: 11, color: "#2dd4bf", fontWeight: 600 }}>🌦 HKO Live</div>
         </div>
       </nav>
 
@@ -85,12 +86,12 @@ function NavLink({ to, active, children, highlight }) {
       fontSize: 12,
       fontWeight: 700,
       background: active
-        ? highlight ? "#ef444420" : "#1e293b"
+        ? highlight ? "#ff3b4a20" : "#1e293b"
         : "transparent",
       color: active
-        ? highlight ? "#ef4444" : "#f1f5f9"
-        : highlight ? "#f97316" : "#64748b",
-      border: highlight ? `1px solid ${active ? "#ef444440" : "#f9731630"}` : "1px solid transparent",
+        ? highlight ? "#ff3b4a" : "#f1f5f9"
+        : highlight ? "#ff8c42" : "#64748b",
+      border: highlight ? `1px solid ${active ? "#ff3b4a40" : "#ff8c4230"}` : "1px solid transparent",
       letterSpacing: 0.3,
       transition: "all 0.15s",
     }}>

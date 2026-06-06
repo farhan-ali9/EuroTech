@@ -6,11 +6,11 @@ import mapboxgl from "mapbox-gl";
 mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_TOKEN || "YOUR_MAPBOX_PUBLIC_TOKEN";
 
 const TYPE_COLORS = {
-  pothole:    "#ef4444",
-  slippery:   "#f97316",
-  wet_road:   "#3b82f6",
-  rough_road: "#eab308",
-  bump:       "#8b5cf6",
+  pothole:    "#ff3b4a",
+  slippery:   "#ff8c42",
+  wet_road:   "#00d9ff",
+  rough_road: "#ffc600",
+  bump:       "#2dd4bf",
 };
 
 const TYPE_ICONS = {
@@ -20,6 +20,11 @@ const TYPE_ICONS = {
   rough_road: "⚡",
   bump:       "🔺",
 };
+
+const HONG_KONG_BOUNDS = [
+  [113.80, 22.15], // south-west
+  [114.40, 22.55], // north-east
+];
 
 export default function Map({ hazards, userLocation, onHazardClick }) {
   const containerRef  = useRef(null);
@@ -32,14 +37,17 @@ export default function Map({ hazards, userLocation, onHazardClick }) {
   // Initialise map
   useEffect(() => {
     const map = new mapboxgl.Map({
-      container:   containerRef.current,
-      style:       "mapbox://styles/mapbox/dark-v11",
-      center:      [114.1095, 22.3600],   // full HK territory centre
-      zoom:        10,                    // zoomed out to show all districts
-      pitch:       45,
-      bearing:     -10,
-      antialias:   true,
+      container:  containerRef.current,
+      style:      "mapbox://styles/mapbox/dark-v11",
+      center:     [114.1095, 22.3600],
+      zoom:       10,
+      pitch:      45,
+      bearing:    -10,
+      antialias:  true,
     });
+
+    // Fit to show the FULL Hong Kong territory on load
+    map.fitBounds(HONG_KONG_BOUNDS, { padding: 20, duration: 0 });
 
     map.addControl(new mapboxgl.NavigationControl(), "top-left");
     map.addControl(new mapboxgl.ScaleControl(),      "bottom-left");
@@ -133,6 +141,7 @@ export default function Map({ hazards, userLocation, onHazardClick }) {
       const color = TYPE_COLORS[hazard.event_type] || "#ef4444";
       const size  = 14 + hazard.severity * 2;
 
+      const icon = TYPE_ICONS[hazard.event_type] || "⚠️";
       const el = document.createElement("div");
       el.style.cssText = `
         width: ${size}px;
@@ -144,14 +153,18 @@ export default function Map({ hazards, userLocation, onHazardClick }) {
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: ${size * 0.45}px;
+        font-size: ${Math.max(11, Math.round(size * 0.52))}px;
+        line-height: 1;
         box-shadow:
           0 0 0 ${hazard.severity >= 7 ? "8px" : "4px"} ${color}40,
+          0 0 20px ${color}30,
           0 4px 12px rgba(0,0,0,0.5);
         ${hazard.severity >= 7 ? "animation: pulse 1.5s infinite;" : ""}
         transition: transform 0.15s;
+        user-select: none;
       `;
-      el.title = hazard.event_type;
+      el.textContent = icon;
+      el.title = `${hazard.event_type.replace("_", " ")} — severity ${hazard.severity.toFixed(1)}`;
 
       // Popup with full details
       const popup = new mapboxgl.Popup({
@@ -191,15 +204,15 @@ export default function Map({ hazards, userLocation, onHazardClick }) {
           </div>
 
           ${hazard.weather_multiplier > 1.2 ? `
-            <div style="background:#3b82f615;border:1px solid #3b82f640;color:#3b82f6;
+            <div style="background:#00d9ff15;border:1px solid #00d9ff40;color:#00d9ff;
                         padding:5px 8px;border-radius:5px;font-size:11px;font-weight:700;margin-bottom:8px">
               ⛈ Rain severity boost ×${hazard.weather_multiplier}
             </div>` : ""}
 
-          <div style="background:#ef444415;border:1px solid #ef444430;
+          <div style="background:#ff3b4a15;border:1px solid #ff3b4a30;
                       border-radius:6px;padding:8px;text-align:center">
             <div style="font-size:10px;color:#94a3b8">Recommended speed</div>
-            <div style="font-size:22px;font-weight:900;color:#22c55e">
+            <div style="font-size:22px;font-weight:900;color:#2dd4bf">
               ${hazard.severity >= 7 ? 10 : hazard.severity >= 4 ? 20 : 30} km/h
             </div>
           </div>
@@ -239,9 +252,9 @@ export default function Map({ hazards, userLocation, onHazardClick }) {
       el.style.cssText = `
         width: 18px; height: 18px;
         border-radius: 50%;
-        background: #3b82f6;
+        background: #00d9ff;
         border: 3px solid white;
-        box-shadow: 0 0 0 8px #3b82f630, 0 4px 12px rgba(0,0,0,0.4);
+        box-shadow: 0 0 0 8px #00d9ff30, 0 0 24px rgba(0, 217, 255, 0.4), 0 4px 12px rgba(0,0,0,0.4);
         animation: pulse 2s infinite;
       `;
       userMarkerRef.current = new mapboxgl.Marker({ element: el })
@@ -284,16 +297,17 @@ export default function Map({ hazards, userLocation, onHazardClick }) {
           position:   "absolute",
           top:        12,
           right:      12,
-          background: is3D ? "#3b82f6" : "#1e293b",
-          color:      "white",
-          border:     "1px solid #334155",
+          background: is3D ? "#00d9ff" : "#131b2e",
+          color:      is3D ? "#0a0f1f" : "#f1f5f9",
+          border:     is3D ? "1px solid #00d9ff" : "1px solid #1e2d47",
           borderRadius: 8,
           padding:    "6px 12px",
           fontSize:   12,
           fontWeight: 700,
           cursor:     "pointer",
           zIndex:     10,
-          boxShadow:  "0 4px 12px rgba(0,0,0,0.4)",
+          boxShadow:  is3D ? "0 0 24px rgba(0, 217, 255, 0.3)" : "0 4px 12px rgba(0,0,0,0.4)",
+          transition: "all 0.2s",
         }}
       >
         {is3D ? "3D ON" : "2D"}
@@ -304,12 +318,13 @@ export default function Map({ hazards, userLocation, onHazardClick }) {
         position:   "absolute",
         bottom:     32,
         right:      12,
-        background: "#1e293b",
-        border:     "1px solid #334155",
-        borderRadius: 10,
-        padding:    "10px 14px",
+        background: "rgba(19, 27, 46, 0.95)",
+        border:     "1px solid rgba(45, 212, 191, 0.2)",
+        borderRadius: 12,
+        padding:    "12px 16px",
         zIndex:     10,
-        boxShadow:  "0 4px 20px rgba(0,0,0,0.5)",
+        boxShadow:  "0 12px 40px rgba(0, 217, 255, 0.08), 0 4px 20px rgba(0,0,0,0.4)",
+        backdropFilter: "blur(12px)",
       }}>
         {Object.entries(TYPE_ICONS).map(([type, icon]) => (
           <div key={type} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>

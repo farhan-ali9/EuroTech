@@ -39,25 +39,26 @@ export default function Dashboard() {
 
       {criticalHazards.length > 0 && (
         <div style={{
-          background: "#ef444415",
-          borderBottom: "1px solid #ef444440",
+          background: "#ff3b4a15",
+          borderBottom: "1px solid #ff3b4a40",
           padding: "8px 16px",
           display: "flex",
           alignItems: "center",
           gap: 10,
         }}>
           <span style={{
-            background: "#ef4444",
+            background: "#ff3b4a",
             color: "white",
             padding: "2px 8px",
             borderRadius: 4,
             fontSize: 11,
             fontWeight: 800,
             animation: "pulse 1.5s infinite",
+            boxShadow: "0 0 12px rgba(255, 59, 74, 0.4)",
           }}>
             CRITICAL
           </span>
-          <span style={{ fontSize: 13, color: "#ef4444", fontWeight: 600 }}>
+          <span style={{ fontSize: 13, color: "#ff3b4a", fontWeight: 600 }}>
             {criticalHazards.length} critical road hazard{criticalHazards.length > 1 ? "s" : ""} detected
           </span>
         </div>
@@ -92,7 +93,7 @@ export default function Dashboard() {
                 width: 7,
                 height: 7,
                 borderRadius: "50%",
-                background: wsStatus === "live" ? "#22c55e" : "#ef4444",
+                background: wsStatus === "live" ? "#2dd4bf" : "#ff3b4a",
                 marginRight: 5,
               }} />
               {wsStatus === "live" ? "Live feed connected" : wsStatus}
@@ -118,12 +119,12 @@ function HazardDetail({ hazard, onClose }) {
       bottom: 20,
       left: "50%",
       transform: "translateX(-50%)",
-      background: "#1e293b",
-      border: "1px solid #334155",
+      background: "#131b2e",
+      border: "1px solid #1e2d47",
       borderRadius: 12,
       padding: 20,
       minWidth: 340,
-      boxShadow: "0 20px 60px rgba(0,0,0,0.6)",
+      boxShadow: "0 20px 80px rgba(0, 217, 255, 0.12)",
       zIndex: 1000,
     }}>
       <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}>
@@ -150,7 +151,7 @@ function HazardDetail({ hazard, onClose }) {
         <span style={{ fontSize: 24 }}>🚗</span>
         <div>
           <div style={{ fontSize: 12, color: "#94a3b8" }}>Recommended speed</div>
-          <div style={{ fontSize: 22, fontWeight: 800, color: "#22c55e" }}>{speedRec} km/h</div>
+          <div style={{ fontSize: 22, fontWeight: 800, color: "#2dd4bf" }}>{speedRec} km/h</div>
         </div>
       </div>
     </div>

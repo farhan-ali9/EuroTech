@@ -5,9 +5,9 @@ from typing import List, Optional
 from collections import defaultdict
 
 CLUSTER_RADIUS_M        = 50
-MIN_REPORTS             = 3
+MIN_REPORTS             = 1    # 1 real report shows immediately on the map
 HAZARD_EXPIRY_HRS       = 6
-GOVT_SEVERITY_THRESHOLD = 5.0   # auto-report to government above this severity
+GOVT_SEVERITY_THRESHOLD = 5.0
 
 
 def _get_district(lat: float, lng: float) -> str:
@@ -92,6 +92,8 @@ class ClusteringService:
 
     def _create_pending(self, report: dict) -> str:
         hid = str(uuid.uuid4())
+        confirmed = (1 >= MIN_REPORTS)
+        govt = confirmed and report["severity"] >= GOVT_SEVERITY_THRESHOLD
         self._hazards[hid] = {
             "id":                  hid,
             "lat":                 report["lat"],
@@ -103,9 +105,9 @@ class ClusteringService:
             "first_reported":      report["timestamp"].isoformat(),
             "last_reported":       report["timestamp"].isoformat(),
             "weather_multiplier":  report["weather_multiplier"],
-            "confirmed":           False,
-            "government_reported": False,
-            "reported_at":         None,
+            "confirmed":           confirmed,
+            "government_reported": govt,
+            "reported_at":         datetime.utcnow().isoformat() if govt else None,
             "district":            _get_district(report["lat"], report["lng"]),
             "road_name":           None,
             "full_address":        None,
@@ -147,6 +149,18 @@ class ClusteringService:
             if datetime.fromisoformat(h["last_reported"]) < cutoff
         ]
         for hid in expired:
+            del self._hazards[hid]
+
+    def inject_official_hazard(self, hazard: dict):
+        """Add a pre-confirmed official hazard (HKO/TD data) bypassing report threshold."""
+        hid = hazard["id"]
+        hazard["district"] = _get_district(hazard["lat"], hazard["lng"])
+        self._hazards[hid] = hazard
+
+    def clear_official_hazards(self):
+        """Remove all hazards that came from official data sources (safe to re-inject)."""
+        to_remove = [hid for hid, h in self._hazards.items() if h.get("source")]
+        for hid in to_remove:
             del self._hazards[hid]
 
     def get_confirmed_hazards(self) -> List[dict]:
