@@ -78,17 +78,12 @@ fake that — they are either conveniences for the live demo or pieces we plan t
 
 ## 5. Pre-existing code
 
-| Item | Source | Roughly how much | License |
-|---|---|---|---|
-| Vite + React scaffold | `npm create vite@latest` | ~5 boilerplate files | MIT |
-| FastAPI app skeleton | FastAPI quickstart | ~10 lines | MIT |
+None — all code was written during the hackathon window (Farhan's first version was built during
+the event too). The only boilerplate is the standard `npm create vite` (React) and FastAPI
+starter scaffolding.
 
-All feature code was written during the hackathon window — including Farhan's first version,
-which was also built during the event (no pre-existing project code was brought in).
-
-**AI assistance:** parts of the app were built with Claude (Anthropic) as an AI
-pair-programmer. Architecture, product decisions, and the in-car testing were done by the
-human team.
+**AI assistance:** parts of the app were built with Claude (Anthropic) as an AI pair-programmer;
+the architecture, product decisions, and in-car testing were done by the team.
 
 **Scope decision — no sound or video analysis:** The original brief mentioned these as
 additional signal sources. We focused on the accelerometer + GPS path because it is
@@ -100,19 +95,24 @@ require a labelled dataset we did not have.
 
 ## 6. Known limitations & next steps
 
-- **No speed gate** — detection is magnitude-only, so a hard shake while stationary can
-  register. A speed gate (ignore < ~8 km/h) is the next step.
-- **Single-device calibration** — thresholds were tuned on one phone/mount; real severity
-  varies by vehicle, mount, and phone, so absolute severity isn't yet comparable across cars.
-- **No multi-vehicle corroboration** — a single report creates a defect (no filtering of one-off noise yet).
-- **Map is pre-seeded with demo data** (Hong Kong + Munich) so it isn't empty during the pitch.
-- **No authentication** — anyone with the dashboard URL can resolve or add defects.
-- **No auto-resolve** — a repaired road's marker stays until manually resolved; the planned
-  approach is to decay defects once vehicles stop reporting them.
-- **Hardware sensor not integrated** — Adrian's M5Stack firmware detects on-device but has no
-  upload path to the backend yet (it lives on a separate branch).
-- **Device support** — detection needs the device to report gravity-removed acceleration
-  (works on iPhone; some older Androids don't provide it).
+Where we'd take BumpLess next (with an honest note on today's state):
+
+- **Speed-aware detection** — detection is currently magnitude-only; next we add a speed gate
+  (ignore below ~8 km/h) so a hard shake while parked doesn't register.
+- **Per-vehicle calibration** — thresholds are tuned on one phone today; next we auto-calibrate
+  per car, mount, and phone so a severity "4" means the same in every vehicle.
+- **Multi-vehicle corroboration** — today a single report creates a defect; next we confirm a
+  spot only after several independent vehicles report it, filtering one-off noise.
+- **Crowd-filled map** — the demo map is pre-seeded (Hong Kong + Munich) so it isn't empty during
+  the pitch; in production it fills from real driver reports.
+- **Dashboard access control** — the government dashboard is open today; next we add authentication
+  so only authorised staff can resolve or add defects.
+- **Auto-resolve** — repaired roads are cleared by hand today; next, defects fade out automatically
+  once vehicles stop reporting them.
+- **Hardware-sensor integration** — Adrian's M5Stack sensor detects on-device today; next we wire
+  its upload path into the backend (it currently lives on a separate branch).
+- **Wider device support** — detection uses the phone's gravity-removed motion data (great on
+  iPhone); next we add a fallback for older Android devices that don't provide it.
 
 ---
 
