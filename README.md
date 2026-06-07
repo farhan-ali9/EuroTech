@@ -12,9 +12,9 @@ Built at the **EuroTech Hackathon, June 2026**.
 
 | Interface | URL |
 |-----------|-----|
-| Dashboard | `https://roadsense.onrender.com` |
-| Driver Mode (mobile) | `https://roadsense.onrender.com/drive` |
-| Government Portal | `https://roadsense.onrender.com/government` |
+| Dashboard | `[https://roadsense.onrender.com](https://eurotech-gv2a.onrender.com/)` |
+| Driver Mode (mobile) | `https://eurotech-gv2a.onrender.com/drive` |
+| Government Portal | `https://eurotech-gv2a.onrender.com/government` |
 
 ---
 
