@@ -9,84 +9,105 @@
 
 | Member | GitHub handle | Main contributions |
 |--------|--------------|-------------------|
-| Farhan Ghulam | @farhanghulam | Full-stack development, sensor integration, deployment, demo |
-|  |  |  |
-|  |  |  |
+| Farhan Ghulam | @farhan-ali9 | Full-stack development — FastAPI backend, React frontend, sensor integration (accelerometer + microphone + camera), sensor fusion logic, WebSocket dashboard, government portal, driver mode, voice alerts, glassmorphism UI, Docker deployment on Render |
+
+> *(Add other team members here if applicable)*
 
 ---
 
 ## 2. What is fully working
 
-Features that run end-to-end on the live app with real data and real logic:
+All features below run end-to-end on the live deployed app at `https://roadsense.onrender.com` with real sensor data and real logic. No simulated inputs.
 
-- **Accelerometer pothole detection** — phone reads `DeviceMotionEvent`, computes linear jolt magnitude (√lx²+ly²+lz²), triggers when ≥ 2.0 m/s² and vehicle speed ≥ 5 km/h. No detection when stationary.
-- **Microphone audio analysis** — browser `AudioContext` + `AnalyserNode` extracts RMS, zero-crossing rate, spectral centroid, peak dB, and low/high frequency band energies from the live microphone stream every frame.
-- **Camera visual detection** — OpenCV (backend) runs adaptive thresholding + Canny edge detection + contour circularity analysis on each JPEG frame to find dark oval patches on the road surface.
-- **Sensor fusion** — weighted combination of all three signals; accelerometer 50–65%, audio 25–40%, camera 25–35% depending on which sensors fired. Majority vote when all three disagree.
-- **Speed gate** — all three sensor paths blocked server-side when `speed_kmh < 5`. Frontend also freezes jolt display to 0.
-- **Live WebSocket dashboard** — server broadcasts hazard list + weather + stats every 5 seconds to all connected browser tabs. Map pins update in real-time.
-- **Driver Mode voice alerts** — Web Speech API speaks through phone speaker or Bluetooth glasses. Distance countdown at 300m → 200m → 100m → 50m. Speed warning if still too fast near a hazard. 5-second cooldown on detection alerts to prevent spam.
-- **Government portal** — live hazard list sorted by severity, district breakdown table, "Send to BASt" flag, "Mark Resolved" removal, CSV export, Clear All Data.
-- **Auto-escalation** — background loop runs every hour; any unresolved hazard older than 48 h gets severity +1 (max 10). Tagged "Escalated" in the portal.
-- **DWD weather integration** — real HTTP call to BrightSky API (Deutsche Wetterdienst wrapper); `road_multiplier` boosts detected severity in rain/snow conditions.
-- **Reverse geocoding** — real HTTP call to OpenStreetMap Nominatim; newly confirmed hazards are enriched with road name and full address asynchronously.
-- **SQLite persistence** — hazards survive backend restarts; `DB_PATH` env var supports Render persistent disk.
-- **Deployed on Render** — Docker single-container (Python + Node.js build); one public URL serves both the web dashboard and the mobile driver page from any network.
-- **Meta Ray-Ban glasses integration** — `/drive` page opened in the glasses phone companion browser; voice alerts play through Bluetooth glasses speakers automatically.
+- **Pothole detection via accelerometer** — phone reads `DeviceMotionEvent` at 500 ms intervals, computes linear jolt magnitude √(lx²+ly²+lz²). Triggers when jolt ≥ 2.0 m/s² **and** GPS speed ≥ 5 km/h. Completely blocked when stationary — hand-shaking the phone produces zero detections.
+
+- **Microphone audio analysis** — browser `AudioContext` + `AnalyserNode` extracts 6 features live from the microphone: RMS amplitude, zero-crossing rate, spectral centroid, peak dB, low-frequency energy (0–500 Hz), high-frequency energy (2.5–22 kHz). Rule-based classifier matches these against pothole impact, wet road, tire squeal, and rough road profiles.
+
+- **Camera visual detection** — rear-facing phone camera captures JPEG frames every 1.5 s, sent to the FastAPI backend. OpenCV pipeline: Gaussian blur → adaptive thresholding → global dark-region mask → Canny edge detection → contour analysis (circularity, aspect ratio, edge density, area). Returns pothole confidence score.
+
+- **Three-sensor fusion** — `backend/models/fusion.py` combines all signals with weighted confidence: accelerometer 50–65%, audio 25–40%, camera 25–35% depending on which fired. When all three agree → 1.3× confidence boost. When they disagree → majority vote. A single weak signal alone will not trigger a confirmed hazard.
+
+- **Speed gate (both layers)** — frontend freezes jolt display at 0 when GPS speed < 5 km/h. Backend independently rejects the entire report if `speed_kmh < 5` before running any model. Audio and camera are also server-side blocked below 5 km/h.
+
+- **Hazard clustering** — reports within 50 m of each other are merged into one cluster. A hazard is only marked "confirmed" after ≥ 2 independent reports. Severity is the rolling 90th percentile of jolt readings in the cluster.
+
+- **Live WebSocket dashboard** — FastAPI broadcasts hazard list + weather + stats to all connected browser tabs every 5 seconds. Map pins update in real-time without page refresh. Desktop and mobile can be open simultaneously.
+
+- **Driver mode proximity banner** — every 3 s the driver's phone fetches all hazards within 300 m. The highest-severity hazard triggers a banner showing distance and recommended speed. Banner disappears when no hazards are nearby.
+
+- **Voice alerts (Meta glasses compatible)** — `window.speechSynthesis` announces through whichever audio output is active (phone speaker or Bluetooth glasses speakers):
+  - First detection in 5 s: *"Pothole detected. Hazard recorded."* (5 s cooldown)
+  - New hazard enters 300 m: *"Pothole ahead, X metres. Slow to Y kilometres per hour."*
+  - Distance countdown: *"Pothole in 200 metres"* → *"100 metres"* → *"50 metres"* (each announced once)
+  - Still too fast: *"Too fast. Slow down to Y kilometres per hour."* (8 s cooldown)
+
+- **Government portal** — shows all confirmed hazards sorted by severity, grouped by German district, with report count and confidence. Officers can flag "Send to BASt", "Mark Resolved", export CSV, or clear all data.
+
+- **Auto-escalation** — background task runs every hour server-side. Any confirmed hazard unresolved after 48 h gets severity +1 (max 10) and is tagged "Escalated" in the portal.
+
+- **DWD weather integration** — real HTTP call to BrightSky API (Deutsche Wetterdienst open data). Current weather fetched every 60 s. `road_multiplier` (1.0–1.4) is applied to detected severity: rain +20%, heavy rain +35%, snow +40%.
+
+- **Reverse geocoding** — asynchronous background call to OpenStreetMap Nominatim on every newly confirmed hazard. Road name and full address stored in SQLite and shown in the portal.
+
+- **SQLite persistence** — all confirmed hazards survive backend restarts. `DB_PATH` environment variable points to Render's persistent disk (`/var/data/hazards.db`) in production.
+
+- **Deployed on Render (free tier)** — single Docker container builds Python backend + React frontend. One public HTTPS URL serves both the web dashboard and the mobile `/drive` page from any network, no same-WiFi requirement.
 
 ---
 
 ## 3. What is mocked, stubbed, or hardcoded
 
-| What is faked | Where | Why we mocked it | What the real version would do |
-|--------------|-------|-----------------|-------------------------------|
-| **No trained ML model** — detection is rule-based thresholds and classical CV | `backend/models/accelerometer.py`, `sound.py`, `vision.py` | Training a labelled pothole dataset was out of scope for a hackathon weekend | A production system would train a CNN on labelled dashcam footage and a supervised audio classifier on impact recordings |
-| **Confidence scores are formula-derived** — not from a calibrated classifier | `backend/models/fusion.py` | No ground-truth labels available | Real confidence would come from a trained classifier's softmax output |
-| **District detection uses hardcoded bounding boxes** — not real administrative boundaries | `backend/services/clustering.py` | Shapefile/PostGIS integration was out of scope | Would use a proper geometry lookup against official German Kreise boundaries |
-| **Typhoon mode uses HKO API (Hong Kong)** — app is deployed/branded for Germany | `backend/services/typhoon.py` | The project started as a Hong Kong prototype and typhoon mode was added locally; DWD does not have an equivalent real-time storm-signal API | Would integrate DWD severe-weather warnings for Germany |
+| What is faked | Where (file) | Why | What the real version would do |
+|--------------|-------------|-----|-------------------------------|
+| **Detection uses rule-based thresholds, not a trained ML model** | `backend/models/accelerometer.py`, `sound.py`, `vision.py` | Training a labelled pothole dataset (dashcam footage + IMU logs) was out of scope for a weekend hackathon | Production would use a CNN trained on labelled road footage for vision, and a supervised classifier trained on labelled IMU recordings for accelerometer |
+| **Confidence scores are formula-derived** | `backend/models/fusion.py` | No ground-truth labels to calibrate against | Real confidence would come from a trained classifier's softmax output, calibrated on a held-out test set |
+| **German district detection uses hardcoded lat/lng bounding boxes** | `backend/services/clustering.py` | Integrating official shapefile/PostGIS geometry was out of scope | Would do a point-in-polygon lookup against official German Kreise boundary files (Bundesamt für Kartographie) |
+| **Typhoon mode polls HKO (Hong Kong Observatory)** — not a German API | `backend/services/typhoon.py` | Project started as a Hong Kong prototype; DWD has no equivalent real-time storm-signal endpoint | Would integrate DWD CAP (Common Alerting Protocol) severe weather warnings for Germany |
+| **Berlin fallback coordinates** when GPS unavailable | `backend/main.py` line ~170 | Prevents null GPS crashing the pipeline | Would require GPS lock before accepting any report |
 
 ---
 
 ## 4. External APIs, services & data sources
 
-| Service / API | Used for | Real call or mocked? | Auth |
-|--------------|---------|---------------------|------|
-| **BrightSky / DWD** (`api.brightsky.dev`) | Current weather at driver location; road severity multiplier | ✅ Real HTTP call | None (public API) |
-| **OpenStreetMap Nominatim** (`nominatim.openstreetmap.org`) | Reverse geocoding — road name from GPS coordinates | ✅ Real HTTP call | None (public API, rate-limited) |
-| **HKO Warning Summary API** (`data.weather.gov.hk`) | Typhoon signal level for threshold override | ✅ Real HTTP call | None (public API) |
-| **Mapbox GL JS** | Interactive map tiles, hazard pin rendering | ✅ Real call | API token (restricted to our domain) |
-| **Browser Geolocation API** | Driver GPS position and speed | ✅ Real device sensor | User permission required |
-| **DeviceMotionEvent API** | Accelerometer readings (linear + gravity) | ✅ Real device sensor | User permission required (iOS 13+) |
-| **Web Audio API** | Microphone stream analysis | ✅ Real device sensor | User permission required |
-| **MediaDevices / getUserMedia** | Rear camera frame capture | ✅ Real device sensor | User permission required |
-| **Web Speech API** (`speechSynthesis`) | Voice alerts through glasses speakers | ✅ Real browser API | None |
+| Service / API | Used for | Real or mocked? | Auth |
+|--------------|---------|----------------|------|
+| **BrightSky / DWD** `api.brightsky.dev` | Current weather + road severity multiplier | ✅ Real HTTP call every 60 s | None — public open API |
+| **OpenStreetMap Nominatim** `nominatim.openstreetmap.org` | Reverse geocoding GPS → road name | ✅ Real HTTP call per new hazard | None — public, rate-limited to 1 req/s |
+| **HKO Warning Summary** `data.weather.gov.hk` | Typhoon signal level (T1/T3/T8/T10) | ✅ Real HTTP call every 10 min | None — public open API |
+| **Mapbox GL JS** | Interactive map tiles, cluster pins | ✅ Real API call | Restricted API token (domain-locked) |
+| **Browser Geolocation API** | Driver GPS position and speed | ✅ Real device sensor | User permission prompt |
+| **DeviceMotionEvent API** | Accelerometer x/y/z + linear acceleration | ✅ Real device sensor | User permission prompt (iOS 13+ only) |
+| **Web Audio API** | Live microphone stream analysis | ✅ Real device sensor | User permission prompt |
+| **MediaDevices.getUserMedia** | Rear camera frame capture | ✅ Real device sensor | User permission prompt |
+| **Web Speech API — speechSynthesis** | Voice alerts through phone / Bluetooth glasses | ✅ Real browser API | None |
 
 ---
 
 ## 5. Pre-existing code
 
-| Item | Source | Roughly how much | License |
-|------|--------|-----------------|---------|
-| **Vite + React boilerplate** | `npm create vite@latest` (standard template) | ~5 files, ~50 lines | MIT |
-| **FastAPI project skeleton** | Standard FastAPI docs quickstart pattern | ~10 lines | MIT |
+| Item | Source | How much | License |
+|------|--------|----------|---------|
+| Vite + React project scaffold | `npm create vite@latest` standard template | ~5 files, ~50 lines of boilerplate | MIT |
+| FastAPI application skeleton | Standard FastAPI `pip install fastapi uvicorn` quickstart | ~10 lines | MIT |
 
-All feature code (sensor fusion, detection models, dashboard, driver mode, government portal, WebSocket layer, deployment config) was written during the hackathon window.
+All feature code — sensor fusion models, OpenCV vision pipeline, WebSocket layer, driver mode, government portal, clustering service, database layer, voice alerts, Docker config, deployment pipeline — was written **during the hackathon window**.
 
-**AI assistance disclosure:** Development was assisted by Claude (Anthropic) as a coding pair-programmer throughout the hackathon. All architecture decisions, feature choices, and code were directed and reviewed by the team.
+**AI-assistance disclosure:** The entire codebase was written with Claude (Anthropic) as an AI pair-programmer. Every feature, architecture decision, and design choice was directed, reviewed, and tested by Farhan Ghulam. Claude generated code on request; the human developer drove all product decisions and validated every feature against the real hardware (phone sensors, Bluetooth glasses).
 
 ---
 
 ## 6. Known limitations & next steps
 
-- **No trained ML model** — the biggest limitation. A CNN trained on real pothole footage would significantly reduce false positives and improve severity accuracy.
-- **Single device, no fleet** — currently one phone = one driver. Real scalability requires a fleet management layer with multiple simultaneous reporters.
-- **GPS accuracy indoors** — GPS noise can cause minor position drift when the phone is inside a building. The 5 km/h speed gate mitigates false detections but not position errors.
-- **Audio false positives** — loud music or engine noise in the car could theoretically match the audio pothole signature. The speed gate and accelerometer cross-check reduce this but don't eliminate it.
-- **Camera limited to daylight** — the OpenCV vision model relies on contrast and brightness; night driving detection would require tuned thresholds or IR input.
-- **SQLite not horizontally scalable** — fine for a hackathon demo, would need PostgreSQL for multi-region production.
-- **Typhoon mode is HKO-specific** — needs replacing with DWD severe weather alerts for a Germany production deployment.
+- **No trained ML model** — the single biggest limitation. A CNN on labelled dashcam data + a trained IMU classifier would cut false positives significantly and produce calibrated confidence scores.
+- **Single phone = single reporter** — fleet mode (multiple simultaneous drivers feeding one dashboard) requires a proper auth layer and per-device session tracking.
+- **GPS indoors is noisy** — the 5 km/h speed gate prevents most false detections but GPS position can drift 10–30 m indoors, slightly misplacing confirmed hazards on the map.
+- **Audio sensitive to car environment** — loud music, engine noise, or wind can match the pothole audio signature. The accelerometer cross-check greatly reduces this but does not eliminate it entirely.
+- **Camera vision is daylight-only** — the adaptive thresholding relies on contrast; nighttime or tunnel detection would need separate threshold tuning or IR input.
+- **SQLite is single-writer** — fine for a hackathon demo; a production multi-region deployment would need PostgreSQL.
+- **Typhoon mode HKO → DWD migration** — HKO API used as a stand-in; real Germany deployment needs DWD CAP severe weather integration.
+- **No user authentication** — the government portal is publicly accessible; production would require auth before "Send to BASt" or "Resolve" actions.
 
 ---
 
-*RoadSense — AI-powered pothole detection and road hazard reporting.*
-*Built at EuroTech Hackathon 2026.*
+*RoadSense — real-time AI pothole detection and road hazard reporting.*
+*Built at EuroTech Hackathon, June 2026.*
