@@ -256,9 +256,9 @@ one-VPS deployment with auto-TLS.
 
 ## Team
 
-- **Farhan** ([@farhan-ali9](https://github.com/farhan-ali9)) — created BumpLess and built the
-  full-stack foundation: the FastAPI backend, the React driver app & government dashboard, and
-  sensor integration.
+- **Farhan** ([@farhan-ali9](https://github.com/farhan-ali9)) — created the first version of BumpLess
+  and worked across the stack: the FastAPI backend, the React driver app & government dashboard,
+  GPS/accelerometer sensor integration, and the defect reporting & clustering API.
 - **Aleksandr** — worked across the backend and frontend (UI) too: the orientation-independent
   accelerometer detection engine, the driver app & government dashboard, direction-aware proximity
   warnings, crowd aggregation & clustering, Postgres persistence, and the live deployment
