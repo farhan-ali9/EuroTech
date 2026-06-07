@@ -212,17 +212,17 @@ A bump fires when `down` exceeds a threshold (with a short debounce so one potho
 one event), and it's bucketed into severity 1–5. There's still **no speed gate** or
 corroboration. Deliberately simple — see `frontend/src/services/detector.js`.
 
-Thresholds are tuned **sensitive for the demo** so bumps trigger easily, while staying in
-a realistic range (vertical jolt, shown in **g**):
+Thresholds are tuned **sensitive for the demo** so bumps trigger easily (vertical jolt,
+shown in **g**):
 
 | Severity | Vertical jolt | Meaning |
 |---|---|---|
-| _ignored_ | < 0.35 g | gentle handling / vibration |
-| 1 | 0.35–0.5 g | minor bump / rough patch |
-| 2 | 0.5–0.7 g | noticeable bump / mild pothole |
-| 3 | 0.7–1.0 g | moderate pothole |
-| 4 | 1.0–1.3 g | bad, jarring pothole |
-| 5 | ≥ 1.3 g | severe pothole / hard hit |
+| _ignored_ | < 0.25 g | gentle handling / vibration |
+| 1 | 0.25–0.4 g | minor bump / rough patch |
+| 2 | 0.4–0.55 g | noticeable bump / mild pothole |
+| 3 | 0.55–0.75 g | moderate pothole |
+| 4 | 0.75–1.0 g | bad, jarring pothole |
+| 5 | ≥ 1.0 g | severe pothole / hard hit |
 
 (For reference: a crash that fires airbags is ~15 g — well above level 5.)
 
