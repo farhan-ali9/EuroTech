@@ -13,7 +13,7 @@ Readable role overview (not a per-commit breakdown).
 | Member | GitHub handle | Main contributions |
 |---|---|---|
 | Farhan Ali | @farhan-ali9 (also committed as `unknown` / farhanghulam09876@gmail.com) | Built the **first version** of the project; full-stack app work (FastAPI backend + React frontend) alongside Aleksandr. |
-| Aleksandr Gorbunov | git: `Aleksandr Gorbunov <aleksandr.gorbunov@outlook.de>` | Rebuilt the project into the current **BumpLess** — accelerometer detection logic, driver & government views, backend aggregation/clustering/persistence, and the live VPS deployment (bump-less.club). |
+| Aleksandr Gorbunov | git: `Aleksandr Gorbunov <aleksandr.gorbunov@outlook.de>` | Backend & frontend work — the orientation-independent accelerometer detection engine, the driver & government views, backend aggregation/clustering & Postgres persistence, direction-aware proximity warnings, and the live VPS deployment (bump-less.club). |
 | Adrian | @adrks10 | Hardware sensor — M5Stack AtomS3R accelerometer firmware (separate branch; **not yet wired to the backend**). |
 | Marie-Louise | *(no commits — non-code)* | Presentation & visuals — demo video, editing, slides. |
 
