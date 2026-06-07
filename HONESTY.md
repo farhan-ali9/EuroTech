@@ -101,7 +101,7 @@ All feature code — sensor fusion models, OpenCV vision pipeline, WebSocket lay
 
 - **Hardware sensor not yet connected** — Adrian's physical detection device detects and stores locally but does not yet upload to the web app. Connecting it to `/report` with GPS data is the highest priority next step.
 - **No trained ML model** — rule-based thresholds work but a CNN on labelled dashcam data would significantly reduce false positives.
-- **Single phone = single reporter** — fleet mode (multiple simultaneous drivers) requires an auth layer and per-device session tracking.
+- **Single phone = single reporter** — fleet mode (multiple simultaneous drivers feeding one dashboard) requires a proper auth layer and per-device session tracking.
 - **GPS indoors is noisy** — 5 km/h speed gate prevents most false detections but GPS position can drift 10–30 m indoors, slightly misplacing confirmed hazards.
 - **Audio sensitive to car environment** — loud music or engine noise can match the pothole audio signature. The accelerometer cross-check greatly reduces this but does not eliminate it.
 - **Camera vision is daylight-only** — adaptive thresholding relies on contrast; nighttime/tunnel detection needs separate threshold tuning.
