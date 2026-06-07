@@ -31,7 +31,7 @@ Override target if needed:
 ```bash
 VPS=ubuntu@<VPS_IP> APP_DIR=/opt/bumpless ./deploy.sh
 ```
-This rsyncs `road-sentinel-hk/` to the VPS and runs
+This rsyncs the project to the VPS and runs
 `docker compose -f docker-compose.prod.yml up -d --build`.
 
 ### Deploy automatically on `git push` (optional)

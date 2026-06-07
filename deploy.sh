@@ -10,7 +10,7 @@
 set -euo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
-LOCAL_DIR="$HERE/road-sentinel-hk"
+LOCAL_DIR="$HERE"
 
 # Local, gitignored deploy config — e.g. VPS=root@your-ip  (see .deploy.env.example)
 [ -f "$HERE/.deploy.env" ] && . "$HERE/.deploy.env"
@@ -33,6 +33,8 @@ echo "→ Syncing app to $VPS:$APP_DIR ..."
 ssh "$VPS" "mkdir -p '$APP_DIR'"
 rsync -az --delete \
   --exclude '.git' \
+  --exclude '.deploy.env' \
+  --exclude 'road-sentinel-hk' \
   --exclude 'node_modules' \
   --exclude '.venv' \
   --exclude 'dist' \

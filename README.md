@@ -49,25 +49,26 @@ persists them, and serves the map. **No raw accelerometer data leaves the phone.
 ## Repo layout
 
 ```
-road-sentinel-hk/
+.
 ├── docker-compose.yml          # local dev: Postgres only
 ├── docker-compose.prod.yml     # prod: Postgres + backend + Caddy (auto-TLS)
+├── deploy.sh · DEPLOY.md       # one-VPS deployment
+├── HONESTY.md                  # hackathon disclosure
 ├── backend/                    # FastAPI + uv — aggregation, persistence, API
 │   ├── main.py                 #   /report, /hazards, /hazards/nearby, DELETE, /health
 │   ├── services/clustering.py
 │   ├── database.py             #   Postgres via psycopg
 │   ├── seed.py                 #   mock data (HK spread + Munich)
-│   ├── Dockerfile, pyproject.toml
+│   └── Dockerfile, pyproject.toml
 └── frontend/                   # React + Vite (HTTPS) — driver app + gov map
     ├── Dockerfile, Caddyfile
     └── src/
         ├── pages/DriverMode.jsx        # "/"    mobile driver view
         ├── pages/GovernmentPortal.jsx  # "/gov" government map
         ├── components/Map.jsx          # Mapbox map
-        ├── services/detector.js        # |a| → severity 1–5
+        ├── services/detector.js        # vertical jolt → severity 1–5
         ├── services/accelSource.js     # pluggable accelerometer source
         └── services/geo.js             # haversine + bearing (proximity/heading)
-deploy.sh · DEPLOY.md           # one-VPS deployment
 ```
 
 ---
@@ -91,9 +92,7 @@ cp frontend/.env.example frontend/.env
 ## Run it locally
 
 ```bash
-cd road-sentinel-hk
-
-# 1. Database
+# 1. Database (run from the repo root)
 docker compose up -d                       # Postgres on :5432
 
 # 2. Backend  (terminal A)
@@ -252,3 +251,17 @@ one-VPS deployment with auto-TLS.
    potholes and normalize for suspension/phone-mount differences.
 3. **Multi-vehicle corroboration** before a defect is surfaced (filters one-off noise).
 4. **Hands-free alerts** — spoken/audio warnings and background operation.
+
+---
+
+## Team
+
+- **Farhan Ali** ([@farhan-ali9](https://github.com/farhan-ali9)) — created BumpLess and built the
+  full-stack foundation: the FastAPI backend, the React driver app & government dashboard, and
+  sensor integration.
+- **Aleksandr Gorbunov** — the detection engine (orientation-independent accelerometer scoring),
+  crowd aggregation & Postgres persistence, and the live deployment.
+- **Adrian** ([@adrks10](https://github.com/adrks10)) — hardware: M5Stack accelerometer sensor firmware.
+- **Marie-Louise** — product story: demo video, editing, and slides.
+
+Built at the EuroTech Hackathon, June 2026.
