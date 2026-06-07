@@ -9,9 +9,9 @@
 
 | Member | GitHub handle | Main contributions |
 |--------|--------------|-------------------|
-| Farhan Ghulam | @farhan-ali9 | Full-stack development — FastAPI backend, React frontend, sensor integration (accelerometer + microphone + camera), sensor fusion logic, WebSocket dashboard, government portal, driver mode, voice alerts, glassmorphism UI, Docker deployment on Render |
-
-> *(Add other team members here if applicable)*
+| Farhan Ghulam | @farhan-ali9 | **Full-stack web app** — designed and built the entire RoadSense web application from scratch: FastAPI REST + WebSocket backend (`main.py`, `database.py`), three-sensor detection models (`accelerometer.py`, `sound.py`, `vision.py`, `fusion.py`), hazard clustering service, SQLite persistence, auto-escalation loop, DWD/BrightSky weather integration, Nominatim reverse geocoding, React 18 frontend (Driver Mode, Dashboard, Government Portal), glassmorphism UI redesign, voice alerts via Web Speech API (Meta glasses compatible), distance countdown + speed warnings, speed gate (frontend + backend), HTTPS via Vite dev SSL, Docker single-container deployment on Render |
+| Aleksandr Gorbunov | @adrks10-aleksandr *(aleksandr.gorbunov@outlook.de)* | **Repo hygiene + live incident data** — added `.gitignore` and removed committed `node_modules` / `__pycache__` files from history; built `hk_incidents.py` service that pulls live road-event data from HKO + Transport Department APIs every 5 minutes and injects them into the clustering engine as official hazards; added `/incidents/refresh` manual trigger endpoint; extended accelerometer model to accept linear-acceleration fields (`lx`, `ly`, `lz`); added `.env.example` documenting the required Mapbox token env var |
+| Adrian | @adrks10 | **Dedicated hardware sensor firmware** — wrote the embedded firmware (`main.m5f2`) for a physical road-detection device that detects jolts locally on-board; hardware currently stores detections locally and has not yet been connected to the web app's `/report` endpoint (GPS + upload path integration is the next step) |
 
 ---
 
