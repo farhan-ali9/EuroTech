@@ -256,11 +256,12 @@ one-VPS deployment with auto-TLS.
 
 ## Team
 
-- **Farhan Ali** ([@farhan-ali9](https://github.com/farhan-ali9)) — created BumpLess and built the
+- **Farhan** ([@farhan-ali9](https://github.com/farhan-ali9)) — created BumpLess and built the
   full-stack foundation: the FastAPI backend, the React driver app & government dashboard, and
   sensor integration.
-- **Aleksandr Gorbunov** — the detection engine (orientation-independent accelerometer scoring),
-  crowd aggregation & Postgres persistence, and the live deployment.
+- **Aleksandr** — the orientation-independent accelerometer detection engine, direction-aware
+  proximity warnings, crowd aggregation & clustering, Postgres persistence, and the live
+  deployment (Docker + Caddy / Let's Encrypt on bump-less.club).
 - **Adrian** ([@adrks10](https://github.com/adrks10)) — hardware: M5Stack accelerometer sensor firmware.
 - **Marie-Louise** — product story: demo video, editing, and slides.
 
