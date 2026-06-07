@@ -202,7 +202,7 @@ docker compose exec db psql -U bumpless -d bumpless -c "TRUNCATE defects;"
 uv run pytest          # clustering logic + haversine, no Postgres needed
 
 # Frontend (from frontend/)
-npm test               # detector + geo pure-function tests via Vitest
+npm test               # detector pure-function tests via Vitest
 ```
 
 ---
