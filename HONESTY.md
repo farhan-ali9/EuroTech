@@ -4,6 +4,7 @@
 >
 > **The deal:** disclosed shortcuts are **not** penalized — that is the entire point of this file. Hidden ones are. Undisclosed pre-built code is heavily penalized, each undisclosed mock carries a small penalty, and a faked demo is heavily penalized. Telling the truth here costs you nothing.
 
+
 ---
 
 ## 1. Team — who did what
