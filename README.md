@@ -17,11 +17,11 @@ many times it's been reported.
 
 ```
   Driver phone (per-driver, real-time)               Backend (shared source of truth)
-  ┌─────────────────────────────────────┐           ┌───────────────────────────────────┐
-  │ • GPS + accelerometer (device APIs)  │  POST     │ • cluster reports within 50 m       │
-  │ • detect bump → severity 1–5         │ ───────▶  │ • report_count++, severity = max    │
-  │ • proximity warning (local haversine)│ /report   │ • persist to Postgres               │
-  │ • ahead-only (compass / GPS heading) │ ◀───────  │ • reverse-geocode road name         │
+  ┌─────────────────────────────────────┐            ┌───────────────────────────────────┐
+  │ • GPS + accelerometer (device APIs)  │  POST     │ • cluster reports within 50 m     │
+  │ • detect bump → severity 1–5         │ ───────▶ │ • report_count++, severity = max  │
+  │ • proximity warning (local haversine)│ /report   │ • persist to Postgres             │
+  │ • ahead-only (compass / GPS heading) │ ◀─────── │ • reverse-geocode road name       │
   └─────────────────────────────────────┘  /hazards  └───────────────────────────────────┘
                                                                     │
                                             Government map ◀─────────┘  GET /hazards (poll)
