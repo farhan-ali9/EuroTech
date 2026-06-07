@@ -44,6 +44,16 @@ export async function reportHazardToGovernment(id) {
   return res.json();
 }
 
+export async function clearAllHazards() {
+  const res = await fetch("/hazards/all", { method: "DELETE" });
+  return res.json();
+}
+
+export async function fetchTyphoonStatus() {
+  const res = await fetch("/typhoon/status");
+  return res.json();
+}
+
 export function createWebSocket(onMessage) {
   const ws = new WebSocket(`${WS_BASE}/ws`);
 

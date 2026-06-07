@@ -24,7 +24,7 @@ export default defineConfig({
       "/stats":       { target: "http://localhost:8000", changeOrigin: true },
       "/government":  { target: "http://localhost:8000", changeOrigin: true },
       "/incidents":   { target: "http://localhost:8000", changeOrigin: true },
-      "/hazards":     { target: "http://localhost:8000", changeOrigin: true },
+      "/typhoon":     { target: "http://localhost:8000", changeOrigin: true },
       "/health":      { target: "http://localhost:8000", changeOrigin: true },
     },
   },

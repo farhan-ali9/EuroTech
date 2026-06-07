@@ -64,7 +64,8 @@ class ClusteringService:
             self._hazards[h["id"]] = h
 
     def add_report(self, lat: float, lng: float, event_type: str,
-                   severity: float, confidence: float, weather_multiplier: float) -> Optional[str]:
+                   severity: float, confidence: float, weather_multiplier: float,
+                   typhoon_damage: bool = False) -> Optional[str]:
         now = datetime.utcnow()
 
         report = {
@@ -75,6 +76,7 @@ class ClusteringService:
             "severity":           severity,
             "confidence":         confidence,
             "weather_multiplier": weather_multiplier,
+            "typhoon_damage":     typhoon_damage,
             "timestamp":          now,
         }
         self._reports.append(report)
@@ -121,6 +123,7 @@ class ClusteringService:
             "district":            _get_district(report["lat"], report["lng"]),
             "road_name":           None,
             "full_address":        None,
+            "typhoon_damage":      report.get("typhoon_damage", False),
         }
         db.save_hazard(self._hazards[hid])
         return hid

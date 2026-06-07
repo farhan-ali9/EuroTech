@@ -2,7 +2,7 @@ import httpx
 
 NOMINATIM_URL = "https://nominatim.openstreetmap.org/reverse"
 HEADERS = {
-    "User-Agent": "RoadSentinelHK/1.0 (hackathon@eurotech.hk)",
+    "User-Agent": "RoadSense/1.0 (hackathon@eurotech.hk)",
     "Accept-Language": "en",
 }
 

@@ -3,7 +3,13 @@ import json
 import os
 from datetime import datetime
 
-DB_PATH = os.path.join(os.path.dirname(__file__), "hazards.db")
+# Use DB_PATH env var so Render persistent disk can be mounted at /var/data/
+DB_PATH = os.environ.get("DB_PATH", os.path.join(os.path.dirname(__file__), "hazards.db"))
+
+# Ensure directory exists (e.g. /var/data/ on Render)
+_db_dir = os.path.dirname(DB_PATH)
+if _db_dir:
+    os.makedirs(_db_dir, exist_ok=True)
 
 
 def _conn():
@@ -31,9 +37,22 @@ def init_db():
                 reported_at         TEXT,
                 district            TEXT,
                 road_name           TEXT,
-                full_address        TEXT
+                full_address        TEXT,
+                source              TEXT,
+                escalated           INTEGER NOT NULL DEFAULT 0,
+                typhoon_damage      INTEGER NOT NULL DEFAULT 0
             )
         """)
+        # Add new columns to existing DBs without breaking them
+        for col, definition in [
+            ("source",         "TEXT"),
+            ("escalated",      "INTEGER NOT NULL DEFAULT 0"),
+            ("typhoon_damage", "INTEGER NOT NULL DEFAULT 0"),
+        ]:
+            try:
+                con.execute(f"ALTER TABLE hazards ADD COLUMN {col} {definition}")
+            except Exception:
+                pass
 
 
 def save_hazard(h: dict):
@@ -43,7 +62,8 @@ def save_hazard(h: dict):
                 :id, :lat, :lng, :event_type, :severity, :confidence,
                 :report_count, :first_reported, :last_reported,
                 :weather_multiplier, :confirmed, :government_reported,
-                :reported_at, :district, :road_name, :full_address
+                :reported_at, :district, :road_name, :full_address,
+                :source, :escalated, :typhoon_damage
             )
             ON CONFLICT(id) DO UPDATE SET
                 lat                 = excluded.lat,
@@ -58,7 +78,10 @@ def save_hazard(h: dict):
                 reported_at         = excluded.reported_at,
                 district            = excluded.district,
                 road_name           = excluded.road_name,
-                full_address        = excluded.full_address
+                full_address        = excluded.full_address,
+                source              = excluded.source,
+                escalated           = excluded.escalated,
+                typhoon_damage      = excluded.typhoon_damage
         """, {
             "id":                  h["id"],
             "lat":                 h["lat"],
@@ -76,6 +99,9 @@ def save_hazard(h: dict):
             "district":            h.get("district"),
             "road_name":           h.get("road_name"),
             "full_address":        h.get("full_address"),
+            "source":              h.get("source"),
+            "escalated":           int(h.get("escalated", False)),
+            "typhoon_damage":      int(h.get("typhoon_damage", False)),
         })
 
 
@@ -87,6 +113,11 @@ def delete_hazard(hid: str):
 def delete_expired_hazards(cutoff_iso: str):
     with _conn() as con:
         con.execute("DELETE FROM hazards WHERE last_reported < ?", (cutoff_iso,))
+
+
+def clear_all_hazards():
+    with _conn() as con:
+        con.execute("DELETE FROM hazards")
 
 
 def load_all_hazards() -> list[dict]:

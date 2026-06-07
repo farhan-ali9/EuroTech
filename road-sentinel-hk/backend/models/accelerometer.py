@@ -24,18 +24,19 @@ def classify_road_event(
     lx: float = 0.0,
     ly: float = 0.0,
     lz: float = 0.0,
+    threshold_override: float = None,
 ) -> Optional[AccelEvent]:
 
     if speed_kmh < MIN_SPEED_KMH:
         return None
 
-    # Orientation-independent jolt: use linear acceleration (gravity removed by IMU).
-    # Falls back to z_net when linear accel is unavailable (older devices).
     linear_mag = math.sqrt(lx**2 + ly**2 + lz**2)
     z_net = max(0.0, abs(z) - GRAVITY)
     jolt = linear_mag if linear_mag > 0.3 else z_net
 
-    if jolt > POTHOLE_JOLT_THRESHOLD:
+    threshold = threshold_override if threshold_override is not None else POTHOLE_JOLT_THRESHOLD
+
+    if jolt > threshold:
         severity   = min(10.0, jolt * 1.8)
         confidence = min(1.0, jolt / 8.0)
         return AccelEvent("pothole", round(severity, 1), round(confidence, 2), z, x)

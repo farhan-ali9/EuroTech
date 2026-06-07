@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { fetchGovernmentAlerts, reportHazardToGovernment, resolveHazard } from "../services/api";
+import { fetchGovernmentAlerts, reportHazardToGovernment, resolveHazard, clearAllHazards } from "../services/api";
 
 const SEV_COLOR = (s) => s >= 7 ? "#ef4444" : s >= 4 ? "#f97316" : "#eab308";
 const SEV_LABEL = (s) => s >= 7 ? "CRITICAL" : s >= 4 ? "MODERATE" : "LOW";
@@ -53,49 +53,80 @@ export default function GovernmentPortal() {
   );
 
   return (
-    <div style={{ position: "absolute", inset: 0, overflowY: "auto", background: "#0f172a", color: "#f1f5f9" }}>
-      <div style={{ maxWidth: 1100, margin: "0 auto", padding: 24 }}>
+    <div style={{ position: "absolute", inset: 0, overflowY: "auto", background: "linear-gradient(180deg, #030b18 0%, #020810 100%)", color: "#f1f5f9" }}>
+      <div style={{ maxWidth: 1100, margin: "0 auto", padding: 28 }}>
 
         {/* ── Header ── */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24, paddingBottom: 20, borderBottom: "1px solid #1e293b" }}>
+        <div style={{
+          display: "flex", justifyContent: "space-between", alignItems: "flex-start",
+          marginBottom: 28, paddingBottom: 24,
+          borderBottom: "1px solid rgba(0,212,255,0.1)",
+        }}>
           <div>
-            <div style={{ fontSize: 20, fontWeight: 900, marginBottom: 4 }}>
-              🏛️ Bundesanstalt für Straßenwesen (BASt) — Road Hazard Reports
+            <div style={{
+              fontSize: 22, fontWeight: 900, marginBottom: 6,
+              background: "linear-gradient(135deg, #f1f5f9, #94a3b8)",
+              WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
+            }}>
+              🏛️ Bundesanstalt für Straßenwesen (BASt)
             </div>
-            <div style={{ fontSize: 12, color: "#64748b" }}>
-              Real-time driver-detected potholes · Auto-confirmed by sensor fusion · Integrated with BASt road maintenance
+            <div style={{ fontSize: 12, color: "#334155" }}>
+              Real-time driver-detected potholes · AI sensor fusion · Integrated with BASt road maintenance
             </div>
           </div>
           <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 6, background: "#22c55e15", border: "1px solid #22c55e40", padding: "4px 12px", borderRadius: 6 }}>
-              <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#22c55e", display: "inline-block", animation: "pulse 2s infinite" }} />
-              <span style={{ fontSize: 11, fontWeight: 800, color: "#22c55e" }}>LIVE</span>
+            <div style={{
+              display: "flex", alignItems: "center", gap: 6,
+              background: "rgba(0,212,255,0.08)", border: "1px solid rgba(0,212,255,0.25)",
+              padding: "5px 14px", borderRadius: 20,
+              boxShadow: "0 0 12px rgba(0,212,255,0.1)",
+            }}>
+              <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#00d4ff", display: "inline-block", boxShadow: "0 0 6px #00d4ff", animation: "pulse 2s infinite" }} />
+              <span style={{ fontSize: 11, fontWeight: 800, color: "#00d4ff", letterSpacing: 1 }}>LIVE</span>
             </div>
-            {lastFetch && <div style={{ fontSize: 10, color: "#334155" }}>Updated {lastFetch}</div>}
-            <button onClick={exportCSV.bind(null, hazards)} style={{ background: "#1e293b", color: "#64748b", border: "1px solid #334155", borderRadius: 6, padding: "5px 12px", fontSize: 11, cursor: "pointer" }}>
-              ⬇ Export CSV
-            </button>
+            {lastFetch && <div style={{ fontSize: 10, color: "#1e3a5f" }}>Updated {lastFetch}</div>}
+            <div style={{ display: "flex", gap: 6 }}>
+              <button onClick={exportCSV.bind(null, hazards)} style={{
+                background: "rgba(255,255,255,0.04)", color: "#64748b",
+                border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8,
+                padding: "6px 14px", fontSize: 11, cursor: "pointer", fontWeight: 700,
+              }}>⬇ Export CSV</button>
+              <button onClick={async () => { if (confirm("Clear ALL hazard data?")) { await clearAllHazards(); setHazards([]); } }} style={{
+                background: "rgba(239,68,68,0.1)", color: "#ef4444",
+                border: "1px solid rgba(239,68,68,0.3)", borderRadius: 8,
+                padding: "6px 14px", fontSize: 11, cursor: "pointer", fontWeight: 700,
+              }}>🗑 Clear All</button>
+            </div>
           </div>
         </div>
 
         {/* ── Summary stats ── */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12, marginBottom: 20 }}>
-          <StatCard icon="📋" label="Total Reported" value={hazards.length}   color="#3b82f6" />
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 14, marginBottom: 24 }}>
+          <StatCard icon="📋" label="Total Reported" value={hazards.length}   color="#00d4ff" />
           <StatCard icon="🚨" label="Critical"        value={critical.length} color="#ef4444" />
           <StatCard icon="⚠️" label="Moderate"        value={moderate.length} color="#f97316" />
-          <StatCard icon="📨" label="Sent to Govt"    value={reported.length} color="#22c55e" />
+          <StatCard icon="📨" label="Sent to Govt"    value={reported.length} color="#10b981" />
         </div>
-
 
         {/* ── Critical alert banner ── */}
         {critical.length > 0 && (
-          <div style={{ background: "#ef444412", border: "1px solid #ef444440", borderRadius: 10, padding: "14px 18px", marginBottom: 20, display: "flex", alignItems: "center", gap: 14 }}>
-            <span style={{ fontSize: 24 }}>🚨</span>
+          <div style={{
+            background: "linear-gradient(90deg, rgba(239,68,68,0.12), rgba(239,68,68,0.04))",
+            border: "1px solid rgba(239,68,68,0.3)", borderRadius: 14,
+            padding: "16px 20px", marginBottom: 24,
+            display: "flex", alignItems: "center", gap: 16,
+            boxShadow: "0 4px 20px rgba(239,68,68,0.1)",
+          }}>
+            <div style={{
+              width: 44, height: 44, borderRadius: 12, flexShrink: 0,
+              background: "rgba(239,68,68,0.15)", border: "1px solid rgba(239,68,68,0.3)",
+              display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22,
+            }}>🚨</div>
             <div>
-              <div style={{ fontWeight: 800, color: "#ef4444" }}>
-                {critical.length} CRITICAL POTHOLE{critical.length > 1 ? "S" : ""} — IMMEDIATE REPAIR NEEDED
+              <div style={{ fontWeight: 900, color: "#ef4444", fontSize: 14, letterSpacing: 0.5 }}>
+                {critical.length} CRITICAL POTHOLE{critical.length > 1 ? "S" : ""} — IMMEDIATE REPAIR REQUIRED
               </div>
-              <div style={{ fontSize: 12, color: "#94a3b8", marginTop: 2 }}>
+              <div style={{ fontSize: 12, color: "#64748b", marginTop: 3 }}>
                 Severity ≥ 7/10 · High risk of vehicle damage and accidents
               </div>
             </div>
@@ -104,8 +135,13 @@ export default function GovernmentPortal() {
 
         {/* ── District breakdown ── */}
         {districtRows.length > 0 && (
-          <div style={{ background: "#0d1525", border: "1px solid #1e293b", borderRadius: 10, padding: "16px 18px", marginBottom: 20 }}>
-            <div style={{ fontSize: 12, fontWeight: 800, color: "#94a3b8", letterSpacing: 1, marginBottom: 12 }}>
+          <div style={{
+            background: "rgba(6,18,40,0.8)", backdropFilter: "blur(20px)",
+            border: "1px solid rgba(0,212,255,0.1)", borderRadius: 14,
+            padding: "18px 20px", marginBottom: 24,
+            boxShadow: "0 4px 24px rgba(0,0,0,0.2)",
+          }}>
+            <div style={{ fontSize: 11, fontWeight: 900, color: "#00d4ff", letterSpacing: 2, marginBottom: 14 }}>
               📍 BY DISTRICT
             </div>
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
@@ -159,8 +195,8 @@ export default function GovernmentPortal() {
           </div>
         )}
 
-        <div style={{ textAlign: "center", fontSize: 10, color: "#1e293b", marginTop: 24, paddingTop: 16, borderTop: "1px solid #1e293b" }}>
-          Road Sentinel DE · Multi-sensor fusion (accelerometer + microphone + camera) · Real-time crowd-sourced from drivers across Germany
+        <div style={{ textAlign: "center", fontSize: 10, color: "#0f2040", marginTop: 28, paddingTop: 18, borderTop: "1px solid rgba(0,212,255,0.08)" }}>
+          RoadSense · Multi-sensor fusion (accelerometer + microphone + camera) · Real-time crowd-sourced from drivers across Germany
         </div>
       </div>
 
@@ -170,82 +206,79 @@ export default function GovernmentPortal() {
 }
 
 function HazardCard({ hazard: h, onReport, onResolve }) {
-  const color   = SEV_COLOR(h.severity);
-  const label   = SEV_LABEL(h.severity);
+  const color    = SEV_COLOR(h.severity);
+  const label    = SEV_LABEL(h.severity);
   const recSpeed = h.severity >= 7 ? 10 : h.severity >= 4 ? 20 : 30;
   const [resolving, setResolving] = useState(false);
 
-  const handleResolve = async () => {
-    setResolving(true);
-    await onResolve();
-  };
+  const handleResolve = async () => { setResolving(true); await onResolve(); };
 
   return (
     <div style={{
-      background: "#0d1525",
-      border: `1px solid ${h.severity >= 7 ? "#ef444430" : "#1e293b"}`,
+      background: "rgba(6,18,40,0.85)", backdropFilter: "blur(20px)",
+      border: `1px solid ${h.severity >= 7 ? "rgba(239,68,68,0.25)" : "rgba(0,212,255,0.08)"}`,
       borderLeft: `3px solid ${color}`,
-      borderRadius: 10,
-      padding: "16px 18px",
-      display: "flex", alignItems: "center", gap: 16,
+      borderRadius: 14, padding: "18px 20px",
+      display: "flex", alignItems: "center", gap: 18,
       opacity: resolving ? 0.4 : 1,
-      transition: "opacity 0.3s",
+      transition: "opacity 0.3s, box-shadow 0.2s",
+      boxShadow: `0 4px 24px rgba(0,0,0,0.25), 0 0 20px ${color}08`,
     }}>
 
       {/* Severity badge */}
-      <div style={{ textAlign: "center", minWidth: 64 }}>
-        <div style={{ fontSize: 11, color: "#334155", fontWeight: 700, marginBottom: 2 }}>SEV</div>
-        <div style={{ fontSize: 32, fontWeight: 900, color, lineHeight: 1 }}>{h.severity.toFixed(1)}</div>
-        <div style={{ fontSize: 9, fontWeight: 800, color, marginTop: 2, letterSpacing: 1 }}>{label}</div>
+      <div style={{ textAlign: "center", minWidth: 68 }}>
+        <div style={{ fontSize: 10, color: "#1e3a5f", fontWeight: 800, letterSpacing: 1, marginBottom: 4 }}>SEV</div>
+        <div style={{ fontSize: 34, fontWeight: 900, color, lineHeight: 1, textShadow: `0 0 16px ${color}60` }}>
+          {h.severity.toFixed(1)}
+        </div>
+        <div style={{ fontSize: 9, fontWeight: 900, color, marginTop: 4, letterSpacing: 1,
+          background: `${color}15`, padding: "2px 6px", borderRadius: 4, border: `1px solid ${color}25`,
+        }}>{label}</div>
       </div>
 
       {/* Info */}
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontWeight: 800, fontSize: 14, marginBottom: 2 }}>
-          🕳️ Pothole — {h.road_name || `${h.lat.toFixed(4)}, ${h.lng.toFixed(4)}`}
+        <div style={{ fontWeight: 900, fontSize: 14, marginBottom: 4, color: "#f1f5f9" }}>
+          🕳️ {h.road_name || `${h.lat.toFixed(4)}, ${h.lng.toFixed(4)}`}
         </div>
-        <div style={{ fontSize: 11, color: "#64748b", marginBottom: 6 }}>
+        <div style={{ fontSize: 11, color: "#334155", marginBottom: 8 }}>
           {h.district || "Germany"} · {h.report_count} report{h.report_count > 1 ? "s" : ""} · {Math.round(h.confidence * 100)}% confidence
-          {h.reported_at && ` · Flagged ${new Date(h.reported_at).toLocaleTimeString()}`}
+          {h.reported_at && ` · ${new Date(h.reported_at).toLocaleTimeString()}`}
         </div>
-        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-          <Tag label={`Slow to ${recSpeed} km/h`} color="#22c55e" />
-          <Tag label={`${h.lat.toFixed(5)}, ${h.lng.toFixed(5)}`} color="#64748b" mono />
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <Tag label={`Slow to ${recSpeed} km/h`} color="#10b981" />
+          <Tag label={`${h.lat.toFixed(5)}, ${h.lng.toFixed(5)}`} color="#334155" mono />
           {h.government_reported && <Tag label="✓ Sent to BASt" color="#3b82f6" />}
           {h.escalated && <Tag label="⏰ Escalated" color="#ef4444" />}
+          {h.typhoon_damage && <Tag label="🌀 Typhoon Damage" color="#f59e0b" />}
         </div>
       </div>
 
       {/* Actions */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 8, minWidth: 140 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8, minWidth: 144 }}>
         {!h.government_reported ? (
-          <button
-            onClick={onReport}
-            style={{
-              background: "#1e3a5f", color: "#60a5fa",
-              border: "1px solid #1e4a8f", borderRadius: 7,
-              padding: "8px 14px", fontSize: 12, fontWeight: 700,
-              cursor: "pointer", whiteSpace: "nowrap",
-            }}
-          >
-            📨 Send to BASt
-          </button>
+          <button onClick={onReport} style={{
+            background: "rgba(59,130,246,0.12)", color: "#60a5fa",
+            border: "1px solid rgba(59,130,246,0.3)", borderRadius: 8,
+            padding: "9px 14px", fontSize: 12, fontWeight: 800,
+            cursor: "pointer", whiteSpace: "nowrap",
+            boxShadow: "0 0 12px rgba(59,130,246,0.1)",
+          }}>📨 Send to BASt</button>
         ) : (
-          <div style={{ background: "#172a42", color: "#3b82f6", border: "1px solid #1e4a8f", borderRadius: 7, padding: "8px 14px", fontSize: 12, fontWeight: 700, textAlign: "center" }}>
-            ✓ Reported to BASt
-          </div>
+          <div style={{
+            background: "rgba(59,130,246,0.08)", color: "#3b82f6",
+            border: "1px solid rgba(59,130,246,0.2)", borderRadius: 8,
+            padding: "9px 14px", fontSize: 12, fontWeight: 800, textAlign: "center",
+          }}>✓ Reported</div>
         )}
-        <button
-          onClick={handleResolve}
-          disabled={resolving}
-          style={{
-            background: "#14532d", color: "#4ade80",
-            border: "1px solid #166534", borderRadius: 7,
-            padding: "8px 14px", fontSize: 12, fontWeight: 700,
-            cursor: resolving ? "default" : "pointer", whiteSpace: "nowrap",
-          }}
-        >
-          {resolving ? "Removing..." : "✅ Mark Resolved"}
+        <button onClick={handleResolve} disabled={resolving} style={{
+          background: "rgba(16,185,129,0.1)", color: "#10b981",
+          border: "1px solid rgba(16,185,129,0.25)", borderRadius: 8,
+          padding: "9px 14px", fontSize: 12, fontWeight: 800,
+          cursor: resolving ? "default" : "pointer", whiteSpace: "nowrap",
+          boxShadow: "0 0 12px rgba(16,185,129,0.08)",
+        }}>
+          {resolving ? "Removing..." : "✅ Resolved"}
         </button>
       </div>
     </div>
@@ -255,9 +288,11 @@ function HazardCard({ hazard: h, onReport, onResolve }) {
 function Tag({ label, color, mono }) {
   return (
     <span style={{
-      fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 4,
-      background: color + "18", color,
+      fontSize: 10, fontWeight: 800, padding: "3px 9px", borderRadius: 6,
+      background: color + "15", color,
+      border: `1px solid ${color}30`,
       fontFamily: mono ? "monospace" : "inherit",
+      letterSpacing: mono ? 0 : 0.3,
     }}>
       {label}
     </span>
@@ -267,10 +302,16 @@ function Tag({ label, color, mono }) {
 
 function StatCard({ icon, label, value, color }) {
   return (
-    <div style={{ background: "#0d1525", border: "1px solid #1e293b", borderRadius: 10, padding: "14px 16px", textAlign: "center" }}>
-      <div style={{ fontSize: 22, marginBottom: 4 }}>{icon}</div>
-      <div style={{ fontSize: 28, fontWeight: 900, color }}>{value}</div>
-      <div style={{ fontSize: 10, color: "#475569", fontWeight: 700, marginTop: 2 }}>{label.toUpperCase()}</div>
+    <div style={{
+      background: "rgba(6,18,40,0.8)", backdropFilter: "blur(20px)",
+      border: `1px solid ${color}20`, borderRadius: 14,
+      padding: "18px 16px", textAlign: "center",
+      boxShadow: `0 4px 24px rgba(0,0,0,0.3), 0 0 20px ${color}10`,
+      transition: "transform 0.2s",
+    }}>
+      <div style={{ fontSize: 26, marginBottom: 8 }}>{icon}</div>
+      <div style={{ fontSize: 32, fontWeight: 900, color, textShadow: `0 0 20px ${color}60` }}>{value}</div>
+      <div style={{ fontSize: 10, color: "#334155", fontWeight: 800, marginTop: 4, letterSpacing: 1 }}>{label.toUpperCase()}</div>
     </div>
   );
 }
@@ -285,7 +326,7 @@ function exportCSV(hazards) {
   const url  = URL.createObjectURL(blob);
   const a    = document.createElement("a");
   a.href = url;
-  a.download = `road-sentinel-de-${new Date().toISOString().slice(0, 10)}.csv`;
+  a.download = `roadsense-${new Date().toISOString().slice(0, 10)}.csv`;
   a.click();
   URL.revokeObjectURL(url);
 }

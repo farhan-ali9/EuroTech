@@ -8,7 +8,7 @@ BRIGHTSKY = "https://api.brightsky.dev/current_weather"
 DEFAULT_LAT = 50.1109
 DEFAULT_LON = 8.6821
 
-HEADERS = {"User-Agent": "RoadSentinel/1.0"}
+HEADERS = {"User-Agent": "RoadSense/1.0"}
 
 
 async def get_current_weather(lat: float = DEFAULT_LAT, lon: float = DEFAULT_LON) -> dict:

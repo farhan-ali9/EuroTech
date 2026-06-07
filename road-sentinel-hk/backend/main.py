@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from contextlib import asynccontextmanager
-from datetime import datetime
+from datetime import datetime, timedelta
 import asyncio
 import uuid
 import os
@@ -13,13 +13,15 @@ from models.sound import classify_road_sound, estimate_features_from_amplitude
 from models.fusion import fuse_signals
 from models.vision import analyse_frame
 from services.dwd import get_current_weather
+from services.typhoon import get_typhoon_signal
 from services.clustering import ClusteringService
 from services.geocoding import reverse_geocode
 import database as db
 
 db.init_db()
 clustering = ClusteringService()
-_weather_cache = {"data": None, "last_fetch": None}
+_weather_cache  = {"data": None, "last_fetch": None}
+_typhoon_cache  = {"data": {"signal": 0, "active": False, "label": "No Signal", "name": ""}, "last_fetch": None}
 _ws_clients: list[WebSocket] = []
 
 
@@ -35,14 +37,24 @@ async def refresh_incidents():
     await asyncio.sleep(86400)
 
 
+async def refresh_typhoon():
+    """Poll HKO typhoon signal every 10 minutes."""
+    while True:
+        data = await get_typhoon_signal()
+        _typhoon_cache["data"]       = data
+        _typhoon_cache["last_fetch"] = datetime.utcnow().isoformat()
+        await asyncio.sleep(600)
+
+
 async def broadcast_loop():
     while True:
         if _ws_clients:
             payload = {
-                "hazards": clustering.get_confirmed_hazards(),
-                "weather": _weather_cache.get("data"),
-                "stats":   clustering.stats(),
-                "ts":      datetime.utcnow().isoformat(),
+                "hazards":  clustering.get_confirmed_hazards(),
+                "weather":  _weather_cache.get("data"),
+                "stats":    clustering.stats(),
+                "typhoon":  _typhoon_cache.get("data"),
+                "ts":       datetime.utcnow().isoformat(),
             }
             dead = []
             for ws in _ws_clients:
@@ -69,75 +81,17 @@ async def escalation_loop():
                     db.save_hazard(h)
 
 
-DEMO_POTHOLES = [
-    # Kowloon
-    {"lat": 22.3193, "lng": 114.1694, "road": "Nathan Road, Mong Kok",              "severity": 8.2, "confidence": 0.91},
-    {"lat": 22.3158, "lng": 114.1688, "road": "Argyle Street, Mong Kok",            "severity": 6.1, "confidence": 0.80},
-    {"lat": 22.3210, "lng": 114.1720, "road": "Prince Edward Road, Mong Kok",       "severity": 7.4, "confidence": 0.85},
-    {"lat": 22.2988, "lng": 114.1722, "road": "Chatham Road, Tsim Sha Tsui",        "severity": 9.1, "confidence": 0.95},
-    {"lat": 22.2963, "lng": 114.1698, "road": "Canton Road, Tsim Sha Tsui",         "severity": 5.8, "confidence": 0.74},
-    {"lat": 22.3048, "lng": 114.1815, "road": "Ma Tau Wai Road, Kowloon City",      "severity": 7.9, "confidence": 0.89},
-    {"lat": 22.3082, "lng": 114.2259, "road": "Kwun Tong Road, Kwun Tong",          "severity": 4.1, "confidence": 0.65},
-    {"lat": 22.3120, "lng": 114.2240, "road": "Hoi Yuen Road, Kwun Tong",           "severity": 8.7, "confidence": 0.93},
-    {"lat": 22.3368, "lng": 114.1755, "road": "Waterloo Road, Kowloon Tong",        "severity": 7.8, "confidence": 0.88},
-    {"lat": 22.3302, "lng": 114.1624, "road": "Cheung Sha Wan Road, Sham Shui Po",  "severity": 6.3, "confidence": 0.77},
-    {"lat": 22.3330, "lng": 114.1700, "road": "Tai Po Road, Sham Shui Po",          "severity": 5.0, "confidence": 0.70},
-    {"lat": 22.3260, "lng": 114.2100, "road": "Choi Hung Road, Wong Tai Sin",       "severity": 6.9, "confidence": 0.82},
-    {"lat": 22.3350, "lng": 114.2030, "road": "Junction Road, Wong Tai Sin",        "severity": 4.5, "confidence": 0.68},
-    {"lat": 22.3090, "lng": 114.1910, "road": "To Kwa Wan Road, Kowloon City",      "severity": 8.4, "confidence": 0.92},
-    {"lat": 22.3180, "lng": 114.1900, "road": "Lung Cheung Road, Kowloon",          "severity": 3.8, "confidence": 0.61},
-    # HK Island
-    {"lat": 22.2796, "lng": 114.1831, "road": "Yee Wo Street, Causeway Bay",        "severity": 6.5, "confidence": 0.78},
-    {"lat": 22.2784, "lng": 114.1724, "road": "Hennessy Road, Wan Chai",            "severity": 5.3, "confidence": 0.72},
-    {"lat": 22.2820, "lng": 114.1580, "road": "Queen's Road Central",               "severity": 7.2, "confidence": 0.86},
-    {"lat": 22.2760, "lng": 114.1450, "road": "Kennedy Road, Admiralty",            "severity": 4.8, "confidence": 0.69},
-    {"lat": 22.2830, "lng": 114.1760, "road": "Johnston Road, Wan Chai",            "severity": 6.0, "confidence": 0.75},
-    {"lat": 22.2700, "lng": 114.2290, "road": "Shau Kei Wan Road, Eastern",         "severity": 8.9, "confidence": 0.94},
-    {"lat": 22.2840, "lng": 114.2200, "road": "King's Road, North Point",           "severity": 5.6, "confidence": 0.73},
-    {"lat": 22.2770, "lng": 114.1320, "road": "Des Voeux Road West, Sai Wan",       "severity": 7.1, "confidence": 0.84},
-    {"lat": 22.2640, "lng": 114.1480, "road": "Aberdeen Street, Central",           "severity": 3.5, "confidence": 0.60},
-    {"lat": 22.2480, "lng": 114.1700, "road": "Repulse Bay Road, Southern",         "severity": 6.7, "confidence": 0.79},
-    {"lat": 22.2520, "lng": 114.2120, "road": "Chai Wan Road, Chai Wan",            "severity": 9.3, "confidence": 0.96},
-    # New Territories
-    {"lat": 22.3847, "lng": 114.1964, "road": "Tai Po Road, Sha Tin",               "severity": 5.4, "confidence": 0.71},
-    {"lat": 22.3750, "lng": 114.1980, "road": "Che Kung Miu Road, Sha Tin",         "severity": 7.0, "confidence": 0.83},
-    {"lat": 22.3910, "lng": 113.9777, "road": "Castle Peak Road, Tuen Mun",         "severity": 8.5, "confidence": 0.92},
-    {"lat": 22.4458, "lng": 114.0218, "road": "Yuen Long Kau Hui Road, Yuen Long",  "severity": 6.2, "confidence": 0.76},
-    {"lat": 22.4490, "lng": 114.1742, "road": "Tai Po Road, Tai Po",                "severity": 4.7, "confidence": 0.67},
-    {"lat": 22.3812, "lng": 114.2673, "road": "Hiram's Highway, Sai Kung",          "severity": 7.6, "confidence": 0.87},
-    {"lat": 22.3700, "lng": 114.1171, "road": "Texaco Road, Tsuen Wan",             "severity": 5.9, "confidence": 0.75},
-    {"lat": 22.4350, "lng": 114.0800, "road": "Kam Tin Road, Yuen Long",            "severity": 6.8, "confidence": 0.81},
-    {"lat": 22.5000, "lng": 114.1200, "road": "Fanling Highway, North NT",          "severity": 4.3, "confidence": 0.64},
-    {"lat": 22.4950, "lng": 114.1380, "road": "San Wan Road, Sheung Shui",          "severity": 7.3, "confidence": 0.86},
-]
-
-def _seed_demo():
-    now = datetime.utcnow().isoformat()
-    for i, p in enumerate(DEMO_POTHOLES):
-        hid = f"demo_{i}"
-        if hid not in clustering._hazards:
-            clustering._hazards[hid] = {
-                "id": hid, "lat": p["lat"], "lng": p["lng"],
-                "event_type": "pothole", "severity": p["severity"],
-                "confidence": p["confidence"], "report_count": 1,
-                "first_reported": now, "last_reported": now,
-                "weather_multiplier": 1.0, "confirmed": True, "government_reported": False,
-                "reported_at": None, "district": "Hong Kong",
-                "road_name": p["road"], "full_address": None, "source": "demo",
-            }
-
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # _seed_demo()  # commented out — only real driver detections
     asyncio.create_task(refresh_weather())
     asyncio.create_task(refresh_incidents())
+    asyncio.create_task(refresh_typhoon())
     asyncio.create_task(broadcast_loop())
     asyncio.create_task(escalation_loop())
     yield
 
 
-app = FastAPI(title="Road Sentinel DE", lifespan=lifespan)
+app = FastAPI(title="RoadSense", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -157,6 +111,10 @@ async def receive_report(data: dict):
     if lat is None or lat == 0.0: lat = 52.5200
     if lng is None or lng == 0.0: lng = 13.4050
 
+    # During typhoon (T8+) lower threshold to catch post-storm road damage
+    typhoon_active = _typhoon_cache["data"].get("active", False)
+    typhoon_threshold_override = 1.2 if typhoon_active else None
+
     # Accelerometer analysis
     accel_raw  = data.get("accelerometer", {})
     accel_event = classify_road_event(
@@ -167,25 +125,27 @@ async def receive_report(data: dict):
         lx=accel_raw.get("lx", 0.0),
         ly=accel_raw.get("ly", 0.0),
         lz=accel_raw.get("lz", 0.0),
+        threshold_override=typhoon_threshold_override,
     )
 
-    # Sound analysis
-    sound_event = None
-    audio_raw = data.get("audio_amplitude", [])
-    if audio_raw:
-        features   = estimate_features_from_amplitude(audio_raw)
-        sound_event = classify_road_sound(features)
-    elif data.get("audio_features"):
-        sound_event = classify_road_sound(data["audio_features"])
+    # Sound and vision only activate when vehicle is moving
+    sound_event  = None
+    vision_event = None
+
+    if speed >= 5:
+        audio_raw = data.get("audio_amplitude", [])
+        if audio_raw:
+            features    = estimate_features_from_amplitude(audio_raw)
+            sound_event = classify_road_sound(features)
+        elif data.get("audio_features"):
+            sound_event = classify_road_sound(data["audio_features"])
+
+        if data.get("frame"):
+            vision_event = analyse_frame(data["frame"])
 
     # Weather multiplier
-    weather     = _weather_cache.get("data") or {}
-    multiplier  = weather.get("road_multiplier", 1.0)
-
-    # Vision / camera analysis
-    vision_event = None
-    if data.get("frame"):
-        vision_event = analyse_frame(data["frame"])
+    weather    = _weather_cache.get("data") or {}
+    multiplier = weather.get("road_multiplier", 1.0)
 
     # Fuse all signals
     result = fuse_signals(accel_event, sound_event, multiplier, vision_event)
@@ -200,6 +160,7 @@ async def receive_report(data: dict):
         severity=result["severity"],
         confidence=result["confidence"],
         weather_multiplier=multiplier,
+        typhoon_damage=typhoon_active,
     )
 
     # Enrich newly confirmed hazards with road name via OpenStreetMap
@@ -275,10 +236,11 @@ async def websocket_endpoint(websocket: WebSocket):
 
     # Send immediate snapshot
     await websocket.send_json({
-        "hazards": clustering.get_confirmed_hazards(),
-        "weather": _weather_cache.get("data"),
-        "stats":   clustering.stats(),
-        "ts":      datetime.utcnow().isoformat(),
+        "hazards":  clustering.get_confirmed_hazards(),
+        "weather":  _weather_cache.get("data"),
+        "stats":    clustering.stats(),
+        "typhoon":  _typhoon_cache.get("data"),
+        "ts":       datetime.utcnow().isoformat(),
     })
 
     try:
@@ -293,13 +255,18 @@ async def websocket_endpoint(websocket: WebSocket):
 @app.get("/government/alerts")
 async def government_alerts():
     all_hazards = clustering.get_confirmed_hazards()
-    # Exclude demo data from government view — only show real driver detections
-    real = [h for h in all_hazards if h.get("source") != "demo"]
     return {
-        "alerts":    sorted(real, key=lambda h: h["severity"], reverse=True),
+        "alerts":    sorted(all_hazards, key=lambda h: h["severity"], reverse=True),
         "count":     len(real),
         "timestamp": datetime.utcnow().isoformat(),
     }
+
+
+@app.delete("/hazards/all")
+async def clear_all_hazards():
+    clustering._hazards.clear()
+    db.clear_all_hazards()
+    return {"status": "ok", "cleared": True}
 
 
 @app.post("/hazards/{hazard_id}/resolve")
@@ -331,6 +298,11 @@ async def report_to_government(hazard_id: str):
     if not ok:
         return {"status": "error", "message": "Hazard not found"}
     return {"status": "ok", "hazard_id": hazard_id, "government_reported": True}
+
+
+@app.get("/typhoon/status")
+async def typhoon_status():
+    return _typhoon_cache.get("data")
 
 
 @app.get("/health")

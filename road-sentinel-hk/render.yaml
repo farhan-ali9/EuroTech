@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: road-sentinel
+    name: roadsense
     runtime: docker
     plan: free
     envVars:

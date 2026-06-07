@@ -6,7 +6,7 @@ from typing import List, Optional, Dict, Tuple
 HKO_RHRREAD = "https://data.weather.gov.hk/weatherAPI/opendata/weather.php"
 
 HEADERS = {
-    "User-Agent": "Mozilla/5.0 (compatible; RoadSentinelHK/1.0)",
+    "User-Agent": "Mozilla/5.0 (compatible; RoadSense/1.0)",
     "Accept": "application/json, application/xml, */*",
 }
 
@@ -230,7 +230,7 @@ async def get_rainfall_hazards() -> List[dict]:
 
 TD_SPECIAL_NEWS_URL = "https://www.td.gov.hk/en/special_news/spnews.htm"
 NOM_SEARCH = "https://nominatim.openstreetmap.org/search"
-NOM_HEADERS = {"User-Agent": "RoadSentinelHK/1.0 (road hazard monitoring)"}
+NOM_HEADERS = {"User-Agent": "RoadSense/1.0 (road hazard monitoring)"}
 
 # Match proper-noun road names: "Tuen Mun Road", "Wai Wah Street", etc.
 _ROAD_RE = re.compile(
