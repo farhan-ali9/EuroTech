@@ -6,10 +6,11 @@ const SEV_COLOR = (s) => s >= 7 ? "#ef4444" : s >= 4 ? "#f97316" : "#eab308";
 const SEV_LABEL = (s) => s >= 7 ? "HIGH" : s >= 4 ? "MED" : "LOW";
 
 export default function Dashboard() {
-  const [hazards,  setHazards]  = useState([]);
-  const [stats,    setStats]    = useState(null);
-  const [selected, setSelected] = useState(null);
-  const [wsStatus, setWsStatus] = useState("connecting");
+  const [hazards,       setHazards]       = useState([]);
+  const [stats,         setStats]         = useState(null);
+  const [activeDrivers, setActiveDrivers] = useState(0);
+  const [selected,      setSelected]      = useState(null);
+  const [wsStatus,      setWsStatus]      = useState("connecting");
   const wsRef = useRef(null);
 
   useEffect(() => {
@@ -17,6 +18,7 @@ export default function Dashboard() {
       const ws = createWebSocket((data) => {
         setHazards(data.hazards || []);
         setStats(data.stats    || null);
+        setActiveDrivers(data.active_drivers ?? 0);
         setWsStatus("live");
       });
       ws.onopen  = () => setWsStatus("live");
@@ -98,10 +100,11 @@ export default function Dashboard() {
             </div>
 
             {/* Stats */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
-              <MiniStat label="Total"  value={hazards.length}                                          color="#00d4ff" />
-              <MiniStat label="High"   value={hazards.filter(h => h.severity >= 7).length}             color="#ef4444" />
-              <MiniStat label="Medium" value={hazards.filter(h => h.severity >= 4 && h.severity < 7).length} color="#f97316" />
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+              <MiniStat label="Total"   value={hazards.length}                                                color="#00d4ff" />
+              <MiniStat label="Drivers" value={activeDrivers}                                                 color="#22c55e" />
+              <MiniStat label="High"    value={hazards.filter(h => h.severity >= 7).length}                   color="#ef4444" />
+              <MiniStat label="Medium"  value={hazards.filter(h => h.severity >= 4 && h.severity < 7).length} color="#f97316" />
             </div>
           </div>
 

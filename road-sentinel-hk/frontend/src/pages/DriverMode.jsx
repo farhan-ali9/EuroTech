@@ -25,7 +25,18 @@ function haversineM(lat1, lng1, lat2, lng2) {
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
 }
 
+function getDeviceId() {
+  let id = localStorage.getItem("roadsense_device_id");
+  if (!id) {
+    id = crypto.randomUUID();
+    localStorage.setItem("roadsense_device_id", id);
+  }
+  return id;
+}
+
 export default function DriverMode() {
+  const deviceId = useRef(getDeviceId());
+
   const [gps,            setGps]            = useState(null);
   const [accel,          setAccel]          = useState(null);
   const [nearbyHazards,  setNearbyHazards]  = useState([]);
@@ -114,6 +125,7 @@ export default function DriverMode() {
           speed_kmh: g?.speed_kmh ?? 0,
           accelerometer: a, audio_features: latestAudio.current,
           frame: latestFrame.current || undefined,
+          device_id: deviceId.current,
         });
         if (res.hazard_detected) {
           setDetectionCount(c => c + 1);

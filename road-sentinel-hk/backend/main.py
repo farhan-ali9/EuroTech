@@ -23,6 +23,9 @@ clustering = ClusteringService()
 _weather_cache  = {"data": None, "last_fetch": None}
 _typhoon_cache  = {"data": {"signal": 0, "active": False, "label": "No Signal", "name": ""}, "last_fetch": None}
 _ws_clients: list[WebSocket] = []
+# device_id → last seen timestamp for fleet tracking
+_active_devices: dict[str, datetime] = {}
+DEVICE_TIMEOUT_SECS = 30
 
 
 async def refresh_weather():
@@ -49,12 +52,15 @@ async def refresh_typhoon():
 async def broadcast_loop():
     while True:
         if _ws_clients:
+            cutoff = datetime.utcnow() - timedelta(seconds=DEVICE_TIMEOUT_SECS)
+            active_drivers = sum(1 for t in _active_devices.values() if t >= cutoff)
             payload = {
-                "hazards":  clustering.get_confirmed_hazards(),
-                "weather":  _weather_cache.get("data"),
-                "stats":    clustering.stats(),
-                "typhoon":  _typhoon_cache.get("data"),
-                "ts":       datetime.utcnow().isoformat(),
+                "hazards":        clustering.get_confirmed_hazards(),
+                "weather":        _weather_cache.get("data"),
+                "stats":          clustering.stats(),
+                "typhoon":        _typhoon_cache.get("data"),
+                "active_drivers": active_drivers,
+                "ts":             datetime.utcnow().isoformat(),
             }
             dead = []
             for ws in _ws_clients:
@@ -106,6 +112,10 @@ async def receive_report(data: dict):
     lat   = data.get("lat")
     lng   = data.get("lng")
     speed = data.get("speed_kmh", 0)
+
+    device_id = data.get("device_id")
+    if device_id:
+        _active_devices[device_id] = datetime.utcnow()
 
     # lat/lng optional — fall back to Berlin centre when GPS not available
     if lat is None or lat == 0.0: lat = 52.5200
