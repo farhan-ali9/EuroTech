@@ -99,7 +99,7 @@ All feature code — sensor fusion models, OpenCV vision pipeline, WebSocket lay
 ## 6. Known limitations & next steps
 
 - **No trained ML model** — the single biggest limitation. A CNN on labelled dashcam data + a trained IMU classifier would cut false positives significantly and produce calibrated confidence scores.
-- **Single phone = single reporter** — fleet mode (multiple simultaneous drivers feeding one dashboard) requires a proper auth layer and per-device session tracking.
+
 - **GPS indoors is noisy** — the 5 km/h speed gate prevents most false detections but GPS position can drift 10–30 m indoors, slightly misplacing confirmed hazards on the map.
 - **Audio sensitive to car environment** — loud music, engine noise, or wind can match the pothole audio signature. The accelerometer cross-check greatly reduces this but does not eliminate it entirely.
 - **Camera vision is daylight-only** — the adaptive thresholding relies on contrast; nighttime or tunnel detection would need separate threshold tuning or IR input.
