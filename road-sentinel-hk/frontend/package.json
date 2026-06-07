@@ -1,6 +1,7 @@
 {
-  "name": "road-sentinel-hk",
+  "name": "roadsense",
   "version": "1.0.0",
+  "description": "Real-time AI pothole detection and road hazard reporting",
   "type": "module",
   "scripts": {
     "dev": "vite",
