@@ -212,6 +212,19 @@ A bump fires when `down` exceeds a threshold (with a short debounce so one potho
 one event), and it's bucketed into severity 1–5. There's still **no speed gate** or
 corroboration. Deliberately simple — see `frontend/src/services/detector.js`.
 
+Thresholds are tuned for a phone in a moving vehicle (vertical jolt, shown in **g**):
+
+| Severity | Vertical jolt | Meaning |
+|---|---|---|
+| _ignored_ | < 0.5 g | road vibration / walking / handling |
+| 1 | 0.5–0.75 g | minor bump / rough patch |
+| 2 | 0.75–1.0 g | noticeable bump / mild pothole |
+| 3 | 1.0–1.5 g | moderate pothole |
+| 4 | 1.5–2.0 g | bad, jarring pothole |
+| 5 | ≥ 2.0 g | severe pothole / hard hit |
+
+(For reference: a crash that fires airbags is ~15 g — well above level 5.)
+
 **How it should work (production).** Beyond the current demo:
 - **Speed gate** — ignore readings under ~8 km/h (phone handling while parked/walking).
 - **Windowed peak** — a pothole is a sub-100 ms spike; sample ~100 Hz and take the peak.
