@@ -195,6 +195,18 @@ docker compose exec db psql -U bumpless -d bumpless -c "TRUNCATE defects;"
 
 ---
 
+## Running the tests
+
+```bash
+# Backend (from backend/)
+uv run pytest          # clustering logic + haversine, no Postgres needed
+
+# Frontend (from frontend/)
+npm test               # detector + geo pure-function tests via Vitest
+```
+
+---
+
 ## Bump detection
 
 **Demo (current code).** Severity comes from the **vertical jolt — the motion
@@ -242,7 +254,8 @@ one-VPS deployment with auto-TLS.
 **Known limitations**
 - **No automatic resolution** — you can resolve a defect by hand, but it won't clear
   itself; a repaired road's marker stays until removed.
-- **Demo-grade detection** — severity is raw `|a|` magnitude only (see above).
+- **Demo-grade detection** — thresholds calibrated on one phone/mount; no speed gate or
+  multi-vehicle corroboration yet (see above).
 
 **Next steps to make it practical**
 1. **Auto-resolve by silence** — a defect decays off the map once vehicles stop

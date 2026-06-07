@@ -6,6 +6,10 @@ import basicSsl from "@vitejs/plugin-basic-ssl";
 // API calls use relative paths and are proxied to the backend on :8000.
 export default defineConfig({
   plugins: [react(), basicSsl()],
+  test: {
+    environment: "node",
+    include: ["src/**/*.test.{js,jsx}"],
+  },
   server: {
     port: 3000,
     host: "0.0.0.0",

@@ -90,6 +90,12 @@ which was also built during the event (no pre-existing project code was brought 
 pair-programmer. Architecture, product decisions, and the in-car testing were done by the
 human team.
 
+**Scope decision — no sound or video analysis:** The original brief mentioned these as
+additional signal sources. We focused on the accelerometer + GPS path because it is
+hardware-agnostic (works on any phone, no camera or microphone permission), latency-free,
+and was fully validated on the road during the hackathon. Sound/video classification would
+require a labelled dataset we did not have.
+
 ---
 
 ## 6. Known limitations & next steps
