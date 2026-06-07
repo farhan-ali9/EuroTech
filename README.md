@@ -23,7 +23,7 @@ many times it's been reported.
   │ • proximity warning (local haversine)│ /report   │ • persist to Postgres             │
   │ • ahead-only (compass / GPS heading) │ ◀─────── │ • reverse-geocode road name       │
   └─────────────────────────────────────┘  /hazards  └───────────────────────────────────┘
-                                                                    │
+                                                                     │
                                             Government map ◀─────────┘  GET /hazards (poll)
 ```
 
