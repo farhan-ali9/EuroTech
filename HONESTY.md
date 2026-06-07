@@ -49,13 +49,17 @@ Runs end-to-end on the live app (https://bump-less.club) with real device sensor
 
 ## 3. What is mocked, stubbed, or hardcoded
 
-| What is faked | Where | Why | What the real version would do |
+In plain terms: **the core is real.** The app detects genuine bumps from a real phone's motion
+sensor while driving, and each one becomes a real report on the map. None of the shortcuts below
+fake that — they are either conveniences for the live demo or pieces we plan to build next.
+
+| What | Where | Why | What the full version would do |
 |---|---|---|---|
-| **Demo seed defects** (12 Hong Kong + 1 Munich) | `backend/seed.py` | So the government map isn't empty in the demo | All markers come from real crowd reports; no seeding |
-| **Rule-based severity (not ML)** | `frontend/src/services/detector.js` | No labelled IMU dataset in the hackathon window | Train a classifier on labelled accelerometer recordings |
-| **Hardcoded, single-device thresholds** (floor 0.25 g; level 5 at 1.0 g, tuned sensitive for the demo) | `detector.js` | Calibrated by hand on one phone | Per-vehicle / per-mount calibration on first use |
-| **`external` accelerometer source is a stub** | `frontend/src/services/accelSource.js` | Only the phone IMU is wired up; the external-sensor path isn't implemented | Receive readings from an external/hardware sensor |
-| **Government "resolve" + double-click "add defect"** | `frontend/src/components/Map.jsx` | Demo/debug controls to manipulate the map during the pitch | A real maintenance workflow / auto-resolve by silence |
+| **Extra sample pins on the map** (12 in Hong Kong, 1 in Munich) | `backend/seed.py` | The app *does* create real defects from real driving — these few points are added only so the government map looks populated in a short demo, **not** because we can't produce real data | The map fills up on its own from real drivers; no pre-loaded points |
+| **Severity is a simple rule — no AI/ML yet** | `frontend/src/services/detector.js` | We use a clear, honest physical rule (a bigger jolt = a higher severity); it works today. We didn't have a labelled dataset to train a model during the hackathon | **Future work:** a model trained on many real, labelled bump recordings |
+| **Severity levels tuned by hand on one phone** | `detector.js` | The 1–5 cut-offs were set by testing on a single phone (and turned up so bumps trigger easily in the demo) | **Future work:** auto-calibrate to each car and phone mount, so a "4" means the same in every vehicle |
+| **Slot for an external sensor not wired up** | `frontend/src/services/accelSource.js` | Detection currently runs only on the phone's own sensor; the connector for a separate in-car device is a placeholder | Accept live data from a dedicated hardware sensor through the same connector |
+| **Dashboard "resolve" and double-click "add" buttons** | `frontend/src/components/Map.jsx` | Demo controls so we can add or clear a defect live during the pitch | A real repair workflow — and defects clearing themselves once cars stop reporting them |
 
 ---
 
